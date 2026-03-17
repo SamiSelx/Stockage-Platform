@@ -51,13 +51,13 @@ export default function Header() {
             href="#"
             className="text-foreground hover:text-accent transition-colors text-sm font-medium"
           >
-            Pricing
+            Algorithms
           </a>
           <a
             href="#"
             className="text-foreground hover:text-accent transition-colors text-sm font-medium"
           >
-            Docs
+            Rapport
           </a>
         </nav>
 

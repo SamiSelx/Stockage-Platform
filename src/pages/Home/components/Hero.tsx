@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/Button";
-import logo from "@/assets/imageHero.jpg";
+import logo from "@/assets/img2.jpg";
 
 export default function Hero() {
   return (
@@ -41,12 +41,10 @@ export default function Hero() {
               <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-accent/5 rounded-3xl"></div>
               <div className="absolute inset-8 bg-gradient-to-tr from-accent/30 to-transparent rounded-2xl flex items-center justify-center">
                 <div className="text-center">
-                  <div className="inline-block p-4  rounded-2xl  mb-4">
+                  <div className="inline-block p-4  rounded-2xl w-[120%]  ">
                     <img src={logo} alt="Logo" />
                   </div>
-                  <p className="text-sm text-muted-foreground font-medium">
-                    End-to-End Encrypted
-                  </p>
+                  
                 </div>
               </div>
             </div>

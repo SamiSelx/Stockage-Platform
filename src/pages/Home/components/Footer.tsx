@@ -38,7 +38,7 @@ export default function Footer() {
               href="#"
               className="text-primary-foreground/80 hover:text-primary-foreground transition-colors text-sm"
             >
-              Pricing
+              Algorithms
             </a>
           </div>
 
