@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import logo from "@/assets/logo.png";
+import { Button } from "@/components/ui/Button";
 
 export default function Header() {
   const [isSticky, setIsSticky] = useState(false);
@@ -62,12 +63,12 @@ export default function Header() {
 
         {/* Right Side Buttons */}
         <div className="flex items-center gap-3">
-          <button  className="hidden sm:flex">
+          <Button  className="border-border hover:bg-secondary ">
             Login
-          </button>
-          <button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+          </Button>
+          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
             Get Started
-          </button>
+          </Button>
         </div>
       </div>
     </header>
