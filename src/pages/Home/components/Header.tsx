@@ -100,7 +100,7 @@ export default function Header() {
             </>
           ) : (
             <>
-            <Button onClick={()=> navigate("/login")} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Button onClick={()=> navigate("/login")} className="border-border bg-primary hover:bg-primary/90 text-primary-foreground">
               Login
             </Button>
               <Button onClick={()=> navigate("/register")} className="bg-primary hover:bg-primary/90 text-primary-foreground">
