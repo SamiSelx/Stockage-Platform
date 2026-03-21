@@ -1,5 +1,6 @@
 import logo from '@/assets/logo.png';
 export default function Footer() {
+  const year = new Date().getFullYear();
   return (
     <footer className="bg-primary text-primary-foreground py-12 px-6">
       <div className="max-w-7xl mx-auto">
@@ -92,7 +93,7 @@ export default function Footer() {
         {/* Divider */}
         <div className="border-t border-primary-foreground/20 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-primary-foreground/60 text-sm">
-            © 2026 CryptoDrive — Secure cloud storage built for privacy.
+            © {year} CryptoDrive — Secure cloud storage built for privacy.
           </p>
           <div className="flex gap-6 text-primary-foreground/60">
             <a
