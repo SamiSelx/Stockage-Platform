@@ -1,10 +1,12 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import api from "./backend";
+import user from "./slices/user";
 
 
 export const store = configureStore({
   reducer: {
+    user,
     [api.reducerPath]: api.reducer,
   },
   middleware: (getDefaultMiddleware) =>

@@ -1,9 +1,16 @@
 import { useState, useEffect } from "react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/Button";
+import useUser from "@/hooks/useUser";
+import { Link, useNavigate } from "react-router";
+import { useLogoutMutation } from "@/app/backend/endpoints/auth";
+import { toast } from "sonner";
 
 export default function Header() {
   const [isSticky, setIsSticky] = useState(false);
+  const { user,removeUser } = useUser()
+  const navigate = useNavigate()
+  const [logout] = useLogoutMutation()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -13,6 +20,25 @@ export default function Header() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  function handleLogout(){
+    logout()
+      .unwrap()
+      .then((data) => { 
+        removeUser()
+        // navigate("/login")
+        toast.success("Déconnexion réussie", {
+          description: data.message
+        });
+       })
+      .catch((err) => { 
+        toast.error("Erreur lors de la déconnexion", {
+          description: err.data?.error || "Une erreur est survenue"
+        });
+        navigate("/login")
+        removeUser()
+       })
+  }
 
   return (
     <header
@@ -24,14 +50,14 @@ export default function Header() {
     >
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
-        <div className="flex items-center gap-2">
+        <Link className="flex items-center gap-2" to="/">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-lg">
-                    <img src={logo} alt="CryptoDrive Logo" className="w-10 h-8" />
+              <img src={logo} alt="CryptoDrive Logo" className="w-10 h-8" />
             </span>
           </div>
           <span className="font-bold text-xl text-foreground">CryptoDrive</span>
-        </div>
+        </Link>
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center gap-8">
@@ -63,12 +89,25 @@ export default function Header() {
 
         {/* Right Side Buttons */}
         <div className="flex items-center gap-3">
-          <Button  className="border-border hover:bg-secondary ">
-            Login
-          </Button>
-          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            Get Started
-          </Button>
+          {user && Object.keys(user).length != 0 ? (
+            <>
+              <Button  className="border-border hover:bg-secondary font-code transition-all duration-300 hover:scale-105" onClick={() => handleLogout()}>
+              Se déconnecter
+            </Button>
+            <Button onClick={()=> navigate("/dashboard")} className="border-border hover:bg-secondary font-code transition-all duration-300 hover:scale-105">
+              Dashboard
+            </Button>
+            </>
+          ) : (
+            <>
+            <Button onClick={()=> navigate("/login")} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              Login
+            </Button>
+              <Button onClick={()=> navigate("/register")} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              Get Started
+            </Button>
+            </>
+          )}
         </div>
       </div>
     </header>
