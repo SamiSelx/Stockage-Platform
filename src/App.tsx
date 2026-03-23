@@ -1,5 +1,4 @@
 import { RouterProvider } from "react-router";
-import "./styles/App.css";
 import router from "./routes";
 import { useGetUserMutation } from "./app/backend/endpoints/auth";
 import useUser from "./hooks/useUser";

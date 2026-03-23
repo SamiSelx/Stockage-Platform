@@ -2,7 +2,7 @@ import logoPdf from "@/assets/pdflogo.jpg";
 
 export function RapportSection() {
   return (
-    <div className="flex items-center justify-center  ">
+    <div className="flex items-center justify-center mb-4 ">
       <div className="flex items-center gap-5 p-6 rounded-xl border bg-white shadow-sm hover:shadow-md transition-all duration-300 max-w-3xl">
         {/* Left content */}
         <div className="flex flex-col items-center text-center max-w-md">

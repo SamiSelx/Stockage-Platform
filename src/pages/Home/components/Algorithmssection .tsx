@@ -19,7 +19,7 @@ function StrengthDots({ value, max = 5 }: { value: number; max?: number }) {
 
 export function AlgorithmsSection() {
   return (
-    <section className="max-w-5xl mx-auto px-6 py-20">
+    <section className="max-w-7xl mx-auto px-6 py-20">
       <p className="text-xs font-mono tracking-[0.2em] uppercase text-muted-foreground mb-3">
         Cryptographic primitives
       </p>

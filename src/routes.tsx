@@ -1,19 +1,26 @@
 import { createBrowserRouter } from "react-router";
-import Layout from "./layout";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Dashboad from "./pages/Dashboard";
+import DashboardLayout from "./layout/DashboardLayout";
+import Overview from "./pages/Dashboard";
+import Recent from "./pages/Dashboard/Recent";
+import Starred from "./pages/Dashboard/Starred";
+import Trash from "./pages/Dashboard/Trash";
+import Drive from "./pages/Dashboard/MyDrive";
+
 
 const router = createBrowserRouter([
   {
     path: "/dashboard",
-    element: <Layout />,
+    element: <DashboardLayout />,
     children: [
-      {
-        path: "/dashboard",
-        element: <Dashboad />,
-      },
+      { index: true, element: <Overview /> }, // /dashboard
+      { path: "my-drive", element: <Drive /> }, // /dashboard/my-drive
+      { path: "recent", element: <Recent /> }, // /dashboard/recent
+      { path: "starred", element: <Starred /> }, // /dashboard/starred
+      { path: "trash", element: <Trash /> }, // /dashboard/trash
+
     ],
   },
   {
