@@ -1,15 +1,26 @@
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import navItems from "@/constants/navItems";
 import { Plus } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useLocation, useNavigate } from "react-router";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Sidebar({ onNewFolder }: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const isMobile = useIsMobile()
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(()=>{
+    if(isMobile){
+      setIsExpanded(false);
+    } else {
+      setIsExpanded(true);
+    }
+  },[isMobile])
+  
 
   return (
     <aside
@@ -21,9 +32,9 @@ export default function Sidebar({ onNewFolder }: SidebarProps) {
       <div className="flex h-screen flex-col">
         {/*mini header */}
         <div className="border-b border-border p-4">
-          <div className="flex items-center justify-between gap-2">
+          <div className={`flex items-center  gap-2 ${!isExpanded ? "justify-center" : "justify-between"}`}>
             {isExpanded && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/dashboard")}>
                 <img src={logo} alt="CryptoDrive" className="h-6 w-6" />
                 <span className="font-semibold text-sm">CryptoDrive</span>
               </div>

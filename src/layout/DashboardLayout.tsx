@@ -34,8 +34,8 @@ export default function DashboardLayout() {
           searchQuery={searchQuery}
           onSearchChange={handleSearchChange}
         />
-        <main className="flex-1 overflow-y-auto p-6">
-          <Outlet /> {/* sidebar pages render here */}
+        <main className="flex-1 overflow-y-auto ">
+          <Outlet context={{viewMode,searchQuery}}/> {/* sidebar pages render here */}
         </main>
       </div>
     </div>
