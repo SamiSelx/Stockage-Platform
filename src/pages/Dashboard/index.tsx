@@ -1,4 +1,4 @@
 
-export default function Dashboad(){
-    return <div>Dashboard</div>
+export default function Overview() {
+    return <div className="">Dashboard</div>;
 }

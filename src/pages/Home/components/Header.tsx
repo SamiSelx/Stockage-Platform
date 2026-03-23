@@ -52,7 +52,7 @@ export default function Header() {
         {/* Logo */}
         <Link className="flex items-center gap-2" to="/">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-lg">
+            <span className="text-primary-foreground font-bold text-lg bg-white">
               <img src={logo} alt="CryptoDrive Logo" className="w-10 h-8" />
             </span>
           </div>
@@ -100,7 +100,7 @@ export default function Header() {
             </>
           ) : (
             <>
-            <Button onClick={()=> navigate("/login")} className="border-border bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Button onClick={()=> navigate("/login")} className="border  border-black bg-white text-black hover:scale-105 transition-all duration-300">
               Login
             </Button>
               <Button onClick={()=> navigate("/register")} className="bg-primary hover:bg-primary/90 text-primary-foreground">
