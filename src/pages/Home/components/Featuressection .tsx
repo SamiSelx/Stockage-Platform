@@ -5,7 +5,7 @@ import features from "@/constants/features";
 
 export function FeaturesSection() {
   return (
-    <section className="mt-0 max-w-5xl mx-auto ">
+    <section className="mt-0 max-w-7xl mx-auto px-6 ">
       <p className="text-xs font-mono tracking-[0.2em] uppercase text-muted-foreground mb-3">
         Features
       </p>

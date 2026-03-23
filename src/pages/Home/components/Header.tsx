@@ -44,7 +44,7 @@ export default function Header() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isSticky
-          ? "bg-background/95 backdrop-blur-md shadow-sm border-b border-border"
+          ? "bg-white/80 backdrop-blur-md shadow-sm border-b border-border"
           : "bg-transparent"
       }`}
     >
@@ -63,25 +63,25 @@ export default function Header() {
         <nav className="hidden md:flex items-center gap-8">
           <a
             href="#"
-            className="text-foreground hover:text-accent transition-colors text-sm font-medium"
+            className="text-foreground transition-colors text-sm font-medium"
           >
             Features
           </a>
           <a
             href="#"
-            className="text-foreground hover:text-accent transition-colors text-sm font-medium"
+            className="text-foreground transition-colors text-sm font-medium"
           >
             Security
           </a>
           <a
             href="#"
-            className="text-foreground hover:text-accent transition-colors text-sm font-medium"
+            className="text-foreground transition-colors text-sm font-medium"
           >
             Algorithms
           </a>
           <a
             href="#"
-            className="text-foreground hover:text-accent transition-colors text-sm font-medium"
+            className="text-foreground transition-colors text-sm font-medium"
           >
             Rapport
           </a>
