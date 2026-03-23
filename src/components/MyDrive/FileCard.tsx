@@ -10,15 +10,14 @@ import { cn } from '@/lib/utils';
 // import { useState } from 'react';
 import { FileIcon } from '@/constants/file-icons';
 import { formatDate, formatFileSize } from '@/constants/mock-data';
-import { type File } from '@/constants/mock-data';
 
 
 interface FileCardProps {
-  file: File;
+  file: FileI;
   viewMode: 'grid' | 'list';
   onSelect?: (fileId: string) => void;
   isSelected?: boolean;
-  onPreview?: (file: File) => void;
+  onPreview?: (file: FileI) => void;
 }
 
 export function FileCard({
@@ -28,7 +27,6 @@ export function FileCard({
   isSelected = false,
   onPreview,
 }: FileCardProps) {
-//   const [showContextMenu, setShowContextMenu] = useState(false);
 
   if (viewMode === 'list') {
     return (
@@ -41,7 +39,7 @@ export function FileCard({
             {onSelect && (
               <Checkbox
                 checked={isSelected}
-                onCheckedChange={() => onSelect(file.id)}
+                onCheckedChange={() => onSelect(file._id)}
                 onClick={(e) => e.stopPropagation()}
               />
             )}
@@ -53,7 +51,7 @@ export function FileCard({
               </p>
             </div>
             <div className="text-xs text-muted-foreground text-right">
-              {formatDate(file.dateModified)}
+              {formatDate(file.updatedAt)}
             </div>
             <button className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-background rounded">
               <MoreVertical size={16} />
@@ -99,7 +97,7 @@ export function FileCard({
               className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => {
                 e.stopPropagation();
-                onSelect(file.id);
+                onSelect(file._id);
               }}
             >
               <Checkbox checked={isSelected} />
@@ -125,7 +123,7 @@ export function FileCard({
               {formatFileSize(file.size)}
             </p>
             <p className="text-xs text-muted-foreground">
-              {formatDate(file.dateModified)}
+              {formatDate(file.updatedAt)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
               {file.owner}

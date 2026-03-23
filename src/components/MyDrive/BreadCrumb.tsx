@@ -14,7 +14,7 @@ interface BreadcrumbProps {
 export function Breadcrumb({ items, onNavigate }: BreadcrumbProps) {
   return (
     <nav
-      className="flex items-center gap-2 px-4 py-3 border-b border-border overflow-x-auto"
+      className="flex items-center gap-2 px-4 py-3 border-b border-border "
       aria-label="Breadcrumb"
     >
       {items.map((item, index) => (

@@ -1,4 +1,3 @@
-import { type Folder } from '@/constants/mock-data';
 import { FolderIconComponent } from '@/constants/file-icons';
 import { formatDate } from '@/constants/mock-data';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,11 +12,11 @@ import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
 interface FolderCardProps {
-  folder: Folder;
+  folder: FolderI;
   viewMode: 'grid' | 'list';
   onSelect?: (folderId: string) => void;
   isSelected?: boolean;
-  onOpen?: (folder: Folder) => void;
+  onOpen?: (folder: FolderI) => void;
 }
 
 export function FolderCard({
@@ -40,7 +39,7 @@ export function FolderCard({
             {onSelect && (
               <Checkbox
                 checked={isSelected}
-                onCheckedChange={() => onSelect(folder.id)}
+                onCheckedChange={() => onSelect(folder._id)}
                 onClick={(e) => e.stopPropagation()}
               />
             )}
@@ -52,7 +51,7 @@ export function FolderCard({
               </p>
             </div>
             <div className="text-xs text-muted-foreground text-right">
-              {formatDate(folder.dateModified)}
+              {formatDate(folder.updatedAt)}
             </div>
             <button className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-background rounded">
               <MoreVertical size={16} />
@@ -96,7 +95,7 @@ export function FolderCard({
               className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => {
                 e.stopPropagation();
-                onSelect(folder.id);
+                onSelect(folder._id);
               }}
             >
               <Checkbox checked={isSelected} />
@@ -122,7 +121,7 @@ export function FolderCard({
               {folder.itemCount} items
             </p>
             <p className="text-xs text-muted-foreground">
-              {formatDate(folder.dateModified)}
+              {formatDate(folder.updatedAt)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
               {folder.owner}

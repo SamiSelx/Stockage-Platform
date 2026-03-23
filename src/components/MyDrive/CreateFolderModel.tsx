@@ -7,7 +7,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
-import { type File } from '@/constants/mock-data';
 import { FileIcon } from '@/constants/file-icons';
 import { formatFileSize, formatDate } from '@/constants/mock-data';
 import { useState } from 'react';
@@ -72,7 +71,7 @@ export function CreateFolderModal({
 }
 
 interface FilePreviewModalProps {
-  file: File | null;
+  file: FileI | null;
   isOpen: boolean;
   onClose: () => void;
   onPrevious?: () => void;
@@ -83,8 +82,6 @@ export function FilePreviewModal({
   file,
   isOpen,
   onClose,
-  onPrevious,
-  onNext,
 }: FilePreviewModalProps) {
   if (!file) return null;
 
@@ -133,7 +130,7 @@ export function FilePreviewModal({
             </div>
             <div>
               <p className="text-muted-foreground">Modified</p>
-              <p className="font-medium">{formatDate(file.dateModified)}</p>
+              <p className="font-medium">{formatDate(file.updatedAt)}</p>
             </div>
             <div className="col-span-2">
               <p className="text-muted-foreground">Owner</p>
