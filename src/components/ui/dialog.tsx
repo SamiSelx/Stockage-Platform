@@ -1,10 +1,8 @@
-"use client"
-
 import * as React from "react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/Button"
 import { XIcon } from "lucide-react"
 
 function Dialog({
@@ -71,7 +69,7 @@ function DialogContent({
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
             <Button
               variant="ghost"
-              className="absolute top-2 right-2"
+              className="absolute top-2 right-2 hover:!bg-transparent"
               size="icon-sm"
             >
               <XIcon

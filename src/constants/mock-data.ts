@@ -1,20 +1,3 @@
-// export interface File {
-//   id: string;
-//   name: string;
-//   type: 'pdf' | 'image' | 'document' | 'spreadsheet' | 'video' | 'audio';
-//   size: number;
-//   dateModified: Date;
-//   owner: string;
-// }
-
-// export interface Folder {
-//   id: string;
-//   name: string;
-//   dateModified: Date;
-//   itemCount: number;
-//   owner: string;
-// }
-
 export interface FileSystemItem {
   files: FileI[];
   folders: FolderI[];
@@ -138,24 +121,3 @@ export const mockFileSystem: FileSystemItem = {
   folders: sampleFolders,
 };
 
-export const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
-export const formatDate = (date: Date): string => {
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (date.toDateString() === today.toDateString()) {
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  } else if (date.toDateString() === yesterday.toDateString()) {
-    return 'Yesterday';
-  }
-
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};

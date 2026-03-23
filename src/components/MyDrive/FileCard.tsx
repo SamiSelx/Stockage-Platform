@@ -9,8 +9,8 @@ import { MoreVertical, Download, Trash2, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 // import { useState } from 'react';
 import { FileIcon } from '@/constants/file-icons';
-import { formatDate, formatFileSize } from '@/constants/mock-data';
-
+import { formatFileSize } from '@/utils/formatFileSize';
+import { formatDate } from '@/utils/formatDate';
 
 interface FileCardProps {
   file: FileI;

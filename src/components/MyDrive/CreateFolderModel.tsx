@@ -8,9 +8,10 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { FileIcon } from '@/constants/file-icons';
-import { formatFileSize, formatDate } from '@/constants/mock-data';
 import { useState } from 'react';
-import { X } from 'lucide-react';
+// import { X } from 'lucide-react';
+import { formatFileSize } from '@/utils/formatFileSize';
+import { formatDate } from '@/utils/formatDate';
 
 interface CreateFolderModalProps {
   isOpen: boolean;
@@ -94,12 +95,12 @@ export function FilePreviewModal({
             Preview and details for {file.name}
           </DialogDescription>
         </DialogHeader>
-        <button
+        {/* <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1 hover:bg-accent rounded transition-colors"
         >
           <X size={20} />
-        </button>
+        </button> */}
 
         <div className="space-y-4">
           {/* Preview Area */}

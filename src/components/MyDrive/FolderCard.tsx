@@ -1,5 +1,4 @@
 import { FolderIconComponent } from '@/constants/file-icons';
-import { formatDate } from '@/constants/mock-data';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   ContextMenu,
@@ -10,6 +9,7 @@ import {
 import { MoreVertical, Trash2, Edit, FolderOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { formatDate } from '@/utils/formatDate';
 
 interface FolderCardProps {
   folder: FolderI;
