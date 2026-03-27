@@ -8,6 +8,7 @@ import Recent from "./pages/Dashboard/Recent";
 import Starred from "./pages/Dashboard/Starred";
 import Trash from "./pages/Dashboard/Trash";
 import Drive from "./pages/Dashboard/MyDrive";
+import TestCryptoPage from "./pages/test";
 
 
 const router = createBrowserRouter([
@@ -20,12 +21,15 @@ const router = createBrowserRouter([
       { path: "recent", element: <Recent /> }, // /dashboard/recent
       { path: "starred", element: <Starred /> }, // /dashboard/starred
       { path: "trash", element: <Trash /> }, // /dashboard/trash
-
     ],
   },
   {
     path: "/",
     element: <Home />,
+  },
+  {
+    path: "/test",
+    element: <TestCryptoPage />,
   },
   {
     path: "/login",
