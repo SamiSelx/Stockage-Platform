@@ -1,5 +1,8 @@
 import { Upload, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+
 
 interface EmptyStateProps {
   onCreateFolder: () => void;
@@ -20,7 +23,7 @@ export function EmptyState({ onCreateFolder, onUpload }: EmptyStateProps) {
           New folder
         </Button>
         <Button onClick={onUpload} className="bg-blue-600 hover:bg-blue-700">
-          <Upload size={18} className="mr-2" />
+          <Upload type="file" size={18} className="mr-2" />
           Upload files
         </Button>
       </div>
@@ -55,9 +58,11 @@ export function UploadZone({ onUpload }: UploadZoneProps) {
       <p className="text-sm text-muted-foreground mb-4">
         or click the upload button
       </p>
-      <Button variant="outline" size="sm">
+      <Input type="file" id="file-upload" className="hidden" onChange={(e) => onUpload(e.target.files!)} />
+      <Label htmlFor="file-upload" className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
+        <Upload size={18} />
         Select files
-      </Button>
+      </Label>
     </div>
   );
 }

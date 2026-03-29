@@ -88,7 +88,7 @@ export default function TestCryptoPage() {
 
   return (
     <div style={{ padding: "40px" }}>
-      <h2>🔐 Crypto Test Page</h2>
+      <h2> Crypto Test Page</h2>
 
       <input
         type="password"
