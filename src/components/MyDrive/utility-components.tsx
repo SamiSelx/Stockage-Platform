@@ -10,19 +10,19 @@ export function EmptyState({ onCreateFolder, onUpload }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-96 py-12">
       <FolderPlus size={48} className="text-muted-foreground mb-4" />
-      <h3 className="text-lg font-semibold mb-2">No files or folders here</h3>
+      <h3 className="text-lg font-semibold mb-2">Aucun fichier ou dossier ici</h3>
       <p className="text-muted-foreground text-sm mb-6 text-center">
-        Create a new folder or upload files to get started
+      Créez un nouveau dossier ou téléchargez des fichiers pour commencer
       </p>
       <div className="flex gap-3">
-        <Button variant="outline" onClick={onCreateFolder}>
-          <FolderPlus size={18} className="mr-2" />
-          New folder
-        </Button>
-        <Button onClick={onUpload} className="bg-blue-600 hover:bg-blue-700">
-          <Upload size={18} className="mr-2" />
-          Upload files
-        </Button>
+      <Button variant="outline" onClick={onCreateFolder}>
+        <FolderPlus size={18} className="mr-2" />
+        Nouveau dossier
+      </Button>
+      <Button onClick={onUpload} className="bg-blue-600 hover:bg-blue-700">
+        <Upload size={18} className="mr-2" />
+        Télécharger des fichiers
+      </Button>
       </div>
     </div>
   );

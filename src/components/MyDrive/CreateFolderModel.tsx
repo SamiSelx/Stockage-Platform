@@ -12,23 +12,28 @@ import { useState } from 'react';
 // import { X } from 'lucide-react';
 import { formatFileSize } from '@/utils/formatFileSize';
 import { formatDate } from '@/utils/formatDate';
+import { useParams } from 'react-router';
+import { Loader2 } from 'lucide-react';
 
 interface CreateFolderModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (name: string) => void;
+  onConfirm: (name: string, parentId?: string) => void;
+  isLoading:boolean
 }
 
 export function CreateFolderModal({
   isOpen,
   onClose,
   onConfirm,
+  isLoading
 }: CreateFolderModalProps) {
   const [folderName, setFolderName] = useState('New folder');
+  const param = useParams()
 
   const handleConfirm = () => {
     if (folderName.trim()) {
-      onConfirm(folderName);
+      onConfirm(folderName, param.folderId);
       setFolderName('New folder');
     }
   };
@@ -61,8 +66,13 @@ export function CreateFolderModal({
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleConfirm} className="bg-blue-600 hover:bg-blue-700">
-              Create
+            <Button onClick={handleConfirm} className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className='animate-spin'/>
+                  Creating...
+                </>
+              ) : "Create"}
             </Button>
           </div>
         </div>
