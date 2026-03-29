@@ -8,7 +8,9 @@ import Recent from "./pages/Dashboard/Recent";
 import Starred from "./pages/Dashboard/Starred";
 import Trash from "./pages/Dashboard/Trash";
 import Drive from "./pages/Dashboard/MyDrive";
-
+import Folder from "./pages/Dashboard/MyDrive/Folders/FolderDetails";
+import Folders from "./pages/Dashboard/MyDrive/Folders";
+import { MyDriveLayout } from "./pages/Dashboard/MyDrive/layout/MyDriveLayout";
 
 const router = createBrowserRouter([
   {
@@ -16,11 +18,28 @@ const router = createBrowserRouter([
     element: <DashboardLayout />,
     children: [
       { index: true, element: <Overview /> }, // /dashboard
-      { path: "my-drive", element: <Drive /> }, // /dashboard/my-drive
+      {
+        path: "my-drive",
+        element: <MyDriveLayout />,
+        children: [
+          {
+            index: true,
+            element: <Drive />,
+          },
+          {
+            path: "folders",
+            element: <Folders/>
+          },
+          {
+            path: "folders/:folderId",
+            element: <Folder />,
+          },
+        ]
+      }, // /dashboard/my-drive
+      
       { path: "recent", element: <Recent /> }, // /dashboard/recent
       { path: "starred", element: <Starred /> }, // /dashboard/starred
       { path: "trash", element: <Trash /> }, // /dashboard/trash
-
     ],
   },
   {
