@@ -1,9 +1,11 @@
 interface FolderI {
-  _id: string;
+  id: string;
   name: string;
-  itemCount: number;
-  owner: string;
-  parentFolderId?: string | null;
+  itemCount?: number;
+  owner: UserI;
+  parentFolder?: string | null;
+  children?: FolderI[];
   createdAt: Date;
   updatedAt: Date;
+  breadcrumb?: Array<{ id: string; label: string }>;
 }

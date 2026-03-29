@@ -6,10 +6,13 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { MoreVertical, Trash2, Edit, FolderOpen } from 'lucide-react';
+import { Trash2, Edit, FolderOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { formatDate } from '@/utils/formatDate';
+import useUser from '@/hooks/useUser';
+import { useDeleteFolderMutation } from '@/app/backend/endpoints/folder';
+import { toast } from 'sonner';
 
 interface FolderCardProps {
   folder: FolderI;
@@ -27,6 +30,23 @@ export function FolderCard({
   onOpen,
 }: FolderCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const {user} = useUser()
+  const [deleteFolder] = useDeleteFolderMutation()
+  
+  async function handleDeleteFolder() {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer le dossier "${folder.name}" ? Cette action ne peut pas être annulée.`)) {
+      deleteFolder(folder.id)
+      .unwrap()
+      .then(() => {
+        toast.success("Dossier supprimé avec succès")
+      })
+      .catch(() => {
+        toast.error("Erreur lors de la suppression du dossier")
+      });
+      
+    }
+  }
+
 
   if (viewMode === 'list') {
     return (
@@ -39,7 +59,7 @@ export function FolderCard({
             {onSelect && (
               <Checkbox
                 checked={isSelected}
-                onCheckedChange={() => onSelect(folder._id)}
+                onCheckedChange={() => onSelect(folder.id)}
                 onClick={(e) => e.stopPropagation()}
               />
             )}
@@ -47,15 +67,15 @@ export function FolderCard({
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm truncate">{folder.name}</p>
               <p className="text-xs text-muted-foreground">
-                {folder.itemCount} items
+                {folder?.itemCount ?? 0} items
               </p>
             </div>
             <div className="text-xs text-muted-foreground text-right">
-              {formatDate(folder.updatedAt)}
+              {formatDate(new Date(folder.updatedAt))}
             </div>
-            <button className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-background rounded">
+            {/* <button className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-background rounded">
               <MoreVertical size={16} />
-            </button>
+            </button> */}
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
@@ -67,7 +87,7 @@ export function FolderCard({
             <Edit size={16} className="mr-2" />
             Rename
           </ContextMenuItem>
-          <ContextMenuItem className="text-red-600">
+          <ContextMenuItem className="text-red-600" onClick={handleDeleteFolder}>
             <Trash2 size={16} className="mr-2" />
             Delete
           </ContextMenuItem>
@@ -95,7 +115,7 @@ export function FolderCard({
               className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => {
                 e.stopPropagation();
-                onSelect(folder._id);
+                onSelect(folder.id);
               }}
             >
               <Checkbox checked={isSelected} />
@@ -103,9 +123,9 @@ export function FolderCard({
           )}
 
           {/* More Menu */}
-          <button className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-background rounded">
+          {/* <button className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-background rounded">
             <MoreVertical size={16} />
-          </button>
+          </button> */}
 
           {/* Folder Icon */}
           <div className="mb-3">
@@ -118,13 +138,13 @@ export function FolderCard({
               {folder.name}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {folder.itemCount} items
+              {folder?.itemCount ?? 0} items
             </p>
             <p className="text-xs text-muted-foreground">
-              {formatDate(folder.updatedAt)}
+              {formatDate(new Date(folder.updatedAt))}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              {folder.owner}
+              {folder?.owner.lastName} {folder?.owner.firstName} {folder?.owner._id === (user as UserI)?._id && "(You)"}
             </p>
           </div>
         </div>
@@ -138,7 +158,7 @@ export function FolderCard({
           <Edit size={16} className="mr-2" />
           Rename
         </ContextMenuItem>
-        <ContextMenuItem className="text-red-600">
+        <ContextMenuItem className="text-red-600" onClick={handleDeleteFolder}>
           <Trash2 size={16} className="mr-2" />
           Delete
         </ContextMenuItem>

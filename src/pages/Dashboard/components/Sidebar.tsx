@@ -6,8 +6,10 @@ import { Plus } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useLocation, useNavigate } from "react-router";
 import { useIsMobile } from "@/hooks/use-mobile";
+import useFolder from "@/hooks/useFolder";
 
-export default function Sidebar({ onNewFolder }: SidebarProps) {
+export default function Sidebar() {
+  const {setShowCreateFolder} = useFolder()
   const [isExpanded, setIsExpanded] = useState(true);
   const isMobile = useIsMobile()
   const navigate = useNavigate();
@@ -51,12 +53,12 @@ export default function Sidebar({ onNewFolder }: SidebarProps) {
         {/* New Folder Button */}
         <div className="flex items-center justify-center p-3 border-b border-border text-white">
           <Button
-            onClick={onNewFolder}
+            onClick={() => setShowCreateFolder(true)}
             className="w-full bg-blue-600 hover:bg-blue-700"
             size={isExpanded ? "default" : "icon"}
           >
             <Plus size={18} />
-            {isExpanded && <span className="ml-2 ">New folder</span>}
+            {isExpanded && <span className="ml-2 ">Nouveau dossier</span>}
           </Button>
         </div>
 
