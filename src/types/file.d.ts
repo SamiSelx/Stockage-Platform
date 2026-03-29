@@ -9,3 +9,9 @@ interface FileI {
   createdAt: Date;
   updatedAt: Date;
 }
+
+//tableau des fichiers pour le dashboard
+interface FileListCardProps {
+  files: FileI[];
+  onDelete: (id: string) => void;
+}

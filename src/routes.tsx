@@ -8,6 +8,8 @@ import Recent from "./pages/Dashboard/Recent";
 import Starred from "./pages/Dashboard/Starred";
 import Trash from "./pages/Dashboard/Trash";
 import Drive from "./pages/Dashboard/MyDrive";
+import TestCryptoPage from "./pages/test";
+
 import Folder from "./pages/Dashboard/MyDrive/Folders/FolderDetails";
 import Folders from "./pages/Dashboard/MyDrive/Folders";
 import { MyDriveLayout } from "./pages/Dashboard/MyDrive/layout/MyDriveLayout";
@@ -45,6 +47,10 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <Home />,
+  },
+  {
+    path: "/test",
+    element: <TestCryptoPage />,
   },
   {
     path: "/login",

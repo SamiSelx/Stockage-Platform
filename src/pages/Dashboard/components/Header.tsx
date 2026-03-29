@@ -1,5 +1,3 @@
-
-
 import { Search, UploadCloud, Settings, Grid3x3, List } from "lucide-react";
 
 import {
@@ -11,7 +9,6 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
-
 
 export default function Navbar({
   viewMode,
@@ -71,14 +68,20 @@ export default function Navbar({
           </div>
 
           {/* Upload Button */}
-          <Button
-            onClick={onUpload}
-            variant="outline"
-            size="icon"
-            title="Upload files"
-          >
-            <UploadCloud size={18} />
-          </Button>
+          <div>
+            <Input
+              type="file"
+              id="file-upload"
+              className="hidden"
+              onChange={() => onUpload()}
+              multiple
+            />
+            <Button asChild variant="outline" size="icon" title="Upload files">
+              <label htmlFor="file-upload" className="cursor-pointer">
+                <UploadCloud size={18} />
+              </label>
+            </Button>
+          </div>
 
           {/* Settings Menu */}
           <DropdownMenu>
