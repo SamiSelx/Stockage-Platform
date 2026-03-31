@@ -1,21 +1,24 @@
 import { useState } from "react";
 import FileTable from "@/components/Dashboard/FilesTable";
-import { mockFileSystem } from "@/constants/mock-data";
+import { useGetRecentFilesQuery } from "@/app/backend/endpoints/file";
 
 export default function Recent() {
   const [search, setSearch] = useState("");
+  const { data: recentFiles } = useGetRecentFilesQuery();
 
-  // Mock data (later replace with API)
-  const files = mockFileSystem.files;
+  const files = recentFiles?.data?.files || [];
+ 
 
   const handleDelete = (fileId: string) => {
     console.log("Delete file:", fileId);
   };
 
-  //  Filter files by name
-  const filteredFiles = files.filter((file) =>
-    file.name.toLowerCase().includes(search.toLowerCase())
-  );
+   
+      const filteredFiles = files.filter((file: FileI) =>
+        file.name.toLowerCase().includes(search.toLowerCase())
+      );
+
+
 
   return (
     <div className="p-6 space-y-6">
@@ -42,13 +45,17 @@ export default function Recent() {
 
       {/*  Table container */}
       <div className="bg-white rounded-2xl shadow p-4">
-        {filteredFiles.length > 0 ? (
-          <FileTable files={filteredFiles} onDelete={handleDelete}/>
-        ) : (
-          <div className="text-center py-10 text-gray-500">
-            No files found.
-          </div>
-        )}
+        {
+          filteredFiles.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-gray-500">No recent files found.</p>
+            </div>
+          ) : (
+            <FileTable files={filteredFiles} onDelete={handleDelete} />
+          )
+        }
+          
+      
       </div>
     </div>
   );

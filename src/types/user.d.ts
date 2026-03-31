@@ -10,4 +10,6 @@ interface UserI{
     createdAt:string;
     enable:boolean;
     token?:string;
+    storageUsed:number;
+    storageLimit:number;
 }
