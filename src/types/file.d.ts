@@ -13,6 +13,8 @@ interface FileI {
   folderId?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  isStarred: boolean;
+  isArchived: boolean;
 }
 
 //tableau des fichiers pour le dashboard
@@ -34,4 +36,44 @@ interface UploadFileI {
 interface FileDataI{
   file: { filename: string; mimetype?: string };
   encryptedData: string;
+}
+
+//for API responses
+interface GetRecentFilesResponse {
+  files: FileI[];
+};
+interface GetStarredFilesResponse {
+  files: FileI[];
+}
+interface GetTrashFilesResponse {
+  files: FileI[];
+}
+
+// {
+//     id: string;
+//     name: string;
+//     parentFolder: string | null;
+//   } | null;
+interface ListeFilesResponse {
+  currentFolder: string;
+  files: FileI[];
+  storage: {
+    storageUsed: number;
+    storageLimit: number;
+    storageRemaining: number;
+  };
+}
+
+interface StatisticResponse {
+  totalFiles: number,
+  totalFolders: number,
+  archivedFiles: number,
+  archivedFolders: number,
+  starredFiles: number,
+  openedFiles: number,
+  storage: {
+    used: number,
+    total: number,
+    remaining: number
+  }
 }

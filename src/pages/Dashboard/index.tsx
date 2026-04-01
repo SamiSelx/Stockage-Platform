@@ -1,21 +1,57 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Lock, File } from "lucide-react";
 import { UploadZone } from "@/components/MyDrive/utility-components";
 import StorageQuotaCard from "@/components/Dashboard/StorageQuotaCard";
-import { mockFileSystem } from "@/constants/mock-data";
 import FileTable from "@/components/Dashboard/FilesTable";
+import { useGetFilesQuery, useGetStatisticsQuery, useSupprimerFichierMutation } from "@/app/backend/endpoints/file";
+import useUser from "@/hooks/useUser";
+import { toast } from "sonner";
 
 export default function Overview() {
-  const filesData = mockFileSystem.files;
-  const [files, setFiles] = useState<FileI[]>(filesData);
+  const { user } = useUser();
+  const { data: statisticsData } = useGetStatisticsQuery();
+  const statistics = statisticsData?.data;
+  console.log("Fetched statistics for dashboard:", statistics);
+  const { data: filesData } = useGetFilesQuery();
+  const AllFiles = filesData?.data?.files || [];
+  console.log("Fetched files for dashboard:", AllFiles);
+  const [supprimerFichier] = useSupprimerFichierMutation();
 
-  // Static quota data
-  const totalQuota = 100; // MB
-  const usedQuota = 13.2; // MB
-  const remainingQuota = totalQuota - usedQuota;
+  const [files, setFiles] = useState<FileI[]>(AllFiles);
+  
+//   const handleDeleteFile = (_id: string) => {
+//     setFiles(files.filter((f) => f.id !== _id));
 
-  const handleDeleteFile = (_id: string) => {
-    setFiles(files.filter((f) => f.id !== _id));
+
+  useEffect(() => {
+    setFiles(AllFiles);
+  }, [filesData]);
+
+  const currentUser = user as Partial<UserI> | null;
+  const bytesToMB = (value: number) => value / (1024 * 1024);
+  const usedQuotaBytes = Number(
+    statistics?.storage?.used ?? currentUser?.storageUsed ?? 0,
+  );
+  const totalQuotaBytes = Number(
+    statistics?.storage?.total ?? currentUser?.storageLimit ?? 1024 * 1024 * 1024,
+  );
+  const usedQuota = bytesToMB(usedQuotaBytes);
+  const totalQuota = bytesToMB(totalQuotaBytes);
+  const remainingQuota = Math.max(totalQuota - usedQuota, 0);
+  const totalFilesCount = Number(statistics?.totalFiles ?? files.length);
+  const totalFoldersCount = Number(statistics?.totalFolders ?? 0);
+
+  const handleDeleteFile = async (_id: string) => {
+    try {
+      await supprimerFichier(_id).unwrap();
+      setFiles((prev) => prev.filter((f) => f.id !== _id));
+      toast.success(
+        "File moved to Corbeille. This is not a permanent delete. Delete permanently from Corbeille.",
+      );
+    } catch (err) {
+      toast.error("Failed to move file to Corbeille.");
+      console.error("Delete file error:", err);
+    }
   };
 
   const handleUploadFile = () => {
@@ -48,7 +84,7 @@ export default function Overview() {
                   Nombre de fichiers
                 </p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {files.length}
+                  {totalFilesCount}
                 </p>
               </div>
               <div>
@@ -57,6 +93,14 @@ export default function Overview() {
                 </p>
                 <p className="text-xl font-bold text-slate-900 dark:text-white">
                   {usedQuota.toFixed(1)} MB
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Nombre de dossiers
+                </p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">
+                  {totalFoldersCount}
                 </p>
               </div>
             </div>
@@ -97,6 +141,9 @@ export default function Overview() {
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
             Vos fichiers
           </h2>
+          <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Supprimer ici envoie le fichier vers Corbeille. Ce n&apos;est pas une suppression definitive. Pour supprimer definitivement, allez dans Corbeille et utilisez l&apos;action de suppression definitive.
+          </div>
           {files.length > 0 ? (
             <FileTable files={files} onDelete={handleDeleteFile} />
           ) : (

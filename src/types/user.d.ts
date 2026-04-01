@@ -13,4 +13,6 @@ interface UserI{
     encryptedRMK: string;
     salt: string;
     rmk_iv: string;
+    storageUsed:number;
+    storageLimit:number;
 }
