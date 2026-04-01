@@ -32,18 +32,21 @@ export const apiFile = api.injectEndpoints({
         url: `${API_FILE}/recent`,
         method: "GET",
       }),
+      providesTags: ["file"],
     }),
     getTrashFiles: build.query<ResponseI<GetTrashFilesResponse>, void>({
       query: () => ({
         url: `${API_FILE}/trash`,
         method: "GET",
       }),
+      providesTags: ["file"],
     }),
     getStarredFiles: build.query<ResponseI<GetStarredFilesResponse>, void>({
       query: () => ({
         url: `${API_FILE}/starred`,
         method: "GET",
       }),
+      providesTags: ["file"],
     }),
 
     setStarredFiles: build.mutation<
@@ -55,6 +58,7 @@ export const apiFile = api.injectEndpoints({
         method: "PATCH",
         body: { id: fileId, starred },
       }),
+      invalidatesTags: ["file"],
     }),
 
     supprimerFichier: build.mutation<ResponseI<null>, string>({
@@ -62,18 +66,21 @@ export const apiFile = api.injectEndpoints({
         url: `${API_FILE}/${id}`,
         method: "DELETE",
       }),
+      invalidatesTags: ["file"],
     }),
     restaurerFichier: build.mutation<ResponseI<null>, string>({
       query: (id) => ({
         url: `${API_FILE}/${id}/restore`,
         method: "PATCH",
       }),
+      invalidatesTags: ["file"],
     }),
     supprimerFichierDefinitivement: build.mutation<ResponseI<null>, string>({
       query: (id) => ({
         url: `${API_FILE}/${id}/permanent`,
         method: "DELETE",
       }),
+      invalidatesTags: ["file"],
     }),
      getStatistics: build.query<
       ResponseI<StatisticResponse>,
@@ -83,6 +90,7 @@ export const apiFile = api.injectEndpoints({
         url: `${API_FILE}/statistics`,
         method: "GET",
       }),
+      providesTags: ["file","folder"],
     }),
   }),
 });
