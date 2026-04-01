@@ -31,6 +31,7 @@ export function FileCard({
 }: FileCardProps) {
   const { user } = useUser()
   const {handleDownload} = useFile()
+  console.log("file f",file)
 
   if (viewMode === 'list') {
     return (

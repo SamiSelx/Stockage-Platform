@@ -1,11 +1,15 @@
 
 import { Download, Trash2, Lock, File } from "lucide-react";
 import { Button } from "../ui/Button";
+import { formatDate } from "@/utils/formatDate";
+import { formatFileSize } from "@/utils/formatFileSize";
+import useFile from "@/hooks/useFile";
 
 
 
 
 export default function FileTable({ files, onDelete }: FileListCardProps) {
+  const {handleDownload} = useFile()
  
 
   if (files.length === 0) {
@@ -50,7 +54,7 @@ export default function FileTable({ files, onDelete }: FileListCardProps) {
           <tbody>
             {files.map((file) => (
               <tr
-                key={file._id}
+                key={file.id}
                 className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition"
               >
                 <td className="px-6 py-4">
@@ -58,16 +62,16 @@ export default function FileTable({ files, onDelete }: FileListCardProps) {
                     <File className="text-blue-600 dark:text-blue-400" size={20} />
                     <div>
                       <p className="font-medium text-slate-900 dark:text-white truncate">
-                        {file.name}
+                        {file.filename}
                       </p>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-                  {file.size} MB
+                  {formatFileSize(file.size)}
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-                  {file.createdAt.toLocaleDateString()}
+                  {formatDate(new Date(file.createdAt))}
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
@@ -80,6 +84,7 @@ export default function FileTable({ files, onDelete }: FileListCardProps) {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
                     <Button
+                      onClick={() => handleDownload(file)}
                       variant="outline"
                       size="sm"
                       className="gap-2"
@@ -92,7 +97,7 @@ export default function FileTable({ files, onDelete }: FileListCardProps) {
                       variant="outline"
                       size="sm"
                       className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      onClick={() => onDelete(file._id)}
+                      onClick={() => onDelete(file.id)}
                       title="Supprimer"
                     >
                       <Trash2 size={16} />
@@ -114,7 +119,7 @@ export default function FileTable({ files, onDelete }: FileListCardProps) {
           </span>{" "}
           fichier{files.length > 1 ? "s" : ""} •{" "}
           <span className="font-semibold text-slate-900 dark:text-white">
-            {files.reduce((acc, f) => acc + f.size, 0).toFixed(1)} MB
+            {formatFileSize(files.reduce((acc, f) => acc + f.size, 0))}
           </span>{" "}
           utilisé
         </p>

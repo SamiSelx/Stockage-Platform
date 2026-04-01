@@ -52,8 +52,8 @@ export const apiFile = api.injectEndpoints({
     >({
       query: ({ fileId, starred }) => ({
         url: `${API_FILE}/${fileId}/star`,
-        method: "PUT",
-        body: { starred },
+        method: "PATCH",
+        body: { id: fileId, starred },
       }),
     }),
 
@@ -65,13 +65,13 @@ export const apiFile = api.injectEndpoints({
     }),
     restaurerFichier: build.mutation<ResponseI<null>, string>({
       query: (id) => ({
-        url: `${API_FILE}/restore/${id}`,
-        method: "PUT",
+        url: `${API_FILE}/${id}/restore`,
+        method: "PATCH",
       }),
     }),
     supprimerFichierDefinitivement: build.mutation<ResponseI<null>, string>({
       query: (id) => ({
-        url: `${API_FILE}/permanent/${id}`,
+        url: `${API_FILE}/${id}/permanent`,
         method: "DELETE",
       }),
     }),

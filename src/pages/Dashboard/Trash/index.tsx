@@ -9,6 +9,7 @@ import {
   useRestaurerDossierMutation,
   useSupprimerDossierDefinitivementMutation,
 } from "@/app/backend/endpoints/folder";
+import { formatFileSize } from "@/utils/formatFileSize";
 
 import { Trash2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
@@ -163,20 +164,20 @@ export default function Trash() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {files.map((file) => (
                   <div
-                    key={file._id}
+                    key={file.id}
                     className="bg-white border rounded-lg p-4 flex flex-col justify-between hover:shadow-sm"
                   >
                     <div>
-                      <p className="font-medium truncate">{file.name}</p>
+                      <p className="font-medium truncate">{file.filename}</p>
                       <p className="text-xs text-gray-400">
-                        {file.type} • {file.size} MB
+                        {file.type} • {formatFileSize(file.size)}
                       </p>
                     </div>
 
                     <div className="flex gap-2 mt-4">
                       {/* Restore */}
                       <button
-                        onClick={() => handleRestoreFiles(file._id)}
+                        onClick={() => handleRestoreFiles(file.id)}
                         disabled={isRestoring}
                         className="flex-1 flex items-center justify-center gap-1 py-1 bg-green-50 text-green-600 rounded-md hover:bg-green-100 text-sm disabled:opacity-50"
                       >
@@ -186,7 +187,7 @@ export default function Trash() {
 
                       {/* Delete permanently */}
                       <button
-                        onClick={() => handleDeleteDefinitivelyFiles(file._id)}
+                        onClick={() => handleDeleteDefinitivelyFiles(file.id)}
                         disabled={isDeleting}
                         className="flex-1 flex items-center justify-center gap-1 py-1 bg-red-50 text-red-600 rounded-md hover:bg-red-100 text-sm disabled:opacity-50"
                       >

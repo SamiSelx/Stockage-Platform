@@ -1,21 +1,31 @@
 import { useState } from "react";
 import FileTable from "@/components/Dashboard/FilesTable";
-import { useGetRecentFilesQuery } from "@/app/backend/endpoints/file";
+import { useGetRecentFilesQuery, useSupprimerFichierMutation } from "@/app/backend/endpoints/file";
+import { toast } from "sonner";
 
 export default function Recent() {
   const [search, setSearch] = useState("");
   const { data: recentFiles } = useGetRecentFilesQuery();
+  const [supprimerFichier] = useSupprimerFichierMutation();
 
   const files = recentFiles?.data?.files || [];
  
 
-  const handleDelete = (fileId: string) => {
-    console.log("Delete file:", fileId);
+  const handleDeleteFile = async (_id: string) => {
+    try {
+      await supprimerFichier(_id).unwrap();
+      // setFiles((prev) => prev.filter((f) => f.id !== _id));
+      toast.success(
+        "File moved to Corbeille. This is not a permanent delete. Delete permanently from Corbeille.",
+      );
+    } catch (err) {
+      toast.error("Failed to move file to Corbeille.");
+      console.error("Delete file error:", err);
+    }
   };
-
    
       const filteredFiles = files.filter((file: FileI) =>
-        file.name.toLowerCase().includes(search.toLowerCase())
+        file.filename.toLowerCase().includes(search.toLowerCase())
       );
 
 
@@ -51,7 +61,7 @@ export default function Recent() {
               <p className="text-gray-500">No recent files found.</p>
             </div>
           ) : (
-            <FileTable files={filteredFiles} onDelete={handleDelete} />
+            <FileTable files={filteredFiles} onDelete={handleDeleteFile} />
           )
         }
           

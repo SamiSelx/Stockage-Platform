@@ -12,7 +12,7 @@ export default function Overview() {
   const { data: statisticsData } = useGetStatisticsQuery();
   const statistics = statisticsData?.data;
   console.log("Fetched statistics for dashboard:", statistics);
-  const { data: filesData } = useGetFilesQuery();
+  const { data: filesData } = useGetFilesQuery(undefined);
   const AllFiles = filesData?.data?.files || [];
   console.log("Fetched files for dashboard:", AllFiles);
   const [supprimerFichier] = useSupprimerFichierMutation();
@@ -54,9 +54,6 @@ export default function Overview() {
     }
   };
 
-  const handleUploadFile = () => {
-    // Logic to handle file upload
-  };
 
   return (
     <div className="min-h-screen ">
@@ -133,7 +130,7 @@ export default function Overview() {
 
         {/* Upload Section */}
         <div className="mb-8">
-          <UploadZone onUpload={handleUploadFile} />
+          <UploadZone onUpload={() => console.log("Uploading")}/>
         </div>
 
         {/* Files Section */}

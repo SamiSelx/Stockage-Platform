@@ -5,6 +5,8 @@ import {
   useSetStarredFilesMutation,
 } from "@/app/backend/endpoints/file";
 import { toast } from "sonner";
+import { formatFileSize } from "@/utils/formatFileSize";
+import { formatDate } from "@/utils/formatDate";
 
 export default function Starred() {
   const { data: starredFiles, isLoading, error } = useGetStarredFilesQuery();
@@ -12,14 +14,12 @@ export default function Starred() {
   const [setStarred] = useSetStarredFilesMutation();
 
   const files = starredFiles?.data?.files || [];
-  console.log("Starred files:", files);
 
   const handleDeletePermanently = async (id: string) => {
     try {
       await deleteFile(id).unwrap();
       toast.success("File moved to trash successfully!");
     } catch (err) {
-      toast.error("Failed to move file to trash.");
       console.error("Delete error:", err);
     }
   };
@@ -27,13 +27,17 @@ export default function Starred() {
   const handleToggleStar = async (file: FileI) => {
     try {
       await setStarred({
-        fileId: file._id,
+        fileId: file.id,
         starred: !file.isStarred,
       }).unwrap();
 
-      console.log("Toggled star:", file._id);
+      toast.success(
+        file.isStarred
+          ? "File unstarred successfully!"
+          : "File starred successfully!",
+      );
     } catch (err) {
-      console.error("Star error:", err);
+      console.error("Error updating star status:", err);
       toast.error("Failed to update star status.");
     }
   };
@@ -63,7 +67,7 @@ export default function Starred() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {files.map((file: FileI) => (
                 <div
-                  key={file._id}
+                  key={file.id}
                   className="bg-white dark:bg-slate-800 rounded-2xl shadow p-4 hover:shadow-lg transition-all duration-200 group"
                 >
                   {/* Top Actions */}
@@ -83,7 +87,7 @@ export default function Starred() {
                     </button>
 
                     <button
-                      onClick={() => handleDeletePermanently(file._id)}
+                      onClick={() => handleDeletePermanently(file.id)}
                       className="opacity-0 group-hover:opacity-100 transition"
                       title="Delete"
                     >
@@ -97,17 +101,17 @@ export default function Starred() {
                   {/* File Info */}
                   <div className="space-y-2">
                     <h2 className="font-semibold text-slate-900 dark:text-white truncate">
-                      {file.name}
+                      {file.filename}
                     </h2>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {file.type} • {file.size} MB
+                      {file.type} • {formatFileSize(file.size)}
                     </p>
                   </div>
 
                   {/* Footer */}
                   <div className="mt-4 text-xs text-gray-400">
                     Last modified:{" "}
-                    {new Date(file.updatedAt).toLocaleDateString()}
+                    {formatDate(new Date(file.updatedAt))}
                   </div>
                 </div>
               ))}

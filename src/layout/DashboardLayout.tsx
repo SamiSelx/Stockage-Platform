@@ -11,6 +11,7 @@ export default function DashboardLayout() {
   const [createFolder, {isLoading: isCreatingFolder}] = useCreateFolderMutation();
   const {handleUpload} = useFile()
   const {showCreateFolder, setShowCreateFolder, viewMode, searchQuery, setViewMode, setSearchQuery} = useFolder();
+  
 
   async function handleCreateFolder(name: string, parentId?: string) {
     createFolder({ name, parentFolder: parentId })
@@ -33,7 +34,7 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar/>
+      <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header
           viewMode={viewMode}
