@@ -4,11 +4,12 @@ const API_FILE = "/file";
 
 export const apiFile = api.injectEndpoints({
   endpoints: (build) => ({
-    getFiles: build.query<ResponseI<ListeFilesResponse>, void>({
-      query: () => ({
-        url: `${API_FILE}/`,
+    getFiles: build.query<ResponseI<ListeFilesResponse>, string | undefined>({
+      query: (folderId?:string) => ({
+        url: `${API_FILE}?folderId=${folderId}`,
         method: "GET",
       }),
+      providesTags: ["file"],
     }),
     uploadFile: build.mutation<ResponseI<FileI>, FormData>({
       query: (formData) => ({
@@ -16,12 +17,14 @@ export const apiFile = api.injectEndpoints({
         method: "POST",
         body: formData,
       }),
+      invalidatesTags: ["file"],
     }),
-    downloadFile: build.mutation<ResponseI<Blob>, string>({
+    downloadFile: build.mutation<ResponseI<FileDataI>, string>({
       query: (fileId) => ({
         url: `${API_FILE}/download/${fileId}`,
         method: "GET",
       }),
+      invalidatesTags: ["file"],
     }),
 
     getRecentFiles: build.query<ResponseI<GetRecentFilesResponse>, void>({

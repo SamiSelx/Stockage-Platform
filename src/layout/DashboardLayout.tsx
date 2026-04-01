@@ -5,9 +5,11 @@ import { useCreateFolderMutation } from "@/app/backend/endpoints/folder";
 import useFolder from "@/hooks/useFolder";
 import { CreateFolderModal } from "@/components/MyDrive/CreateFolderModel";
 import { toast } from "sonner";
+import useFile from "@/hooks/useFile";
 
 export default function DashboardLayout() {
   const [createFolder, {isLoading: isCreatingFolder}] = useCreateFolderMutation();
+  const {handleUpload} = useFile()
   const {showCreateFolder, setShowCreateFolder, viewMode, searchQuery, setViewMode, setSearchQuery} = useFolder();
 
   async function handleCreateFolder(name: string, parentId?: string) {
@@ -24,9 +26,6 @@ export default function DashboardLayout() {
     setViewMode(mode);
   };
 
-  const handleUpload = () => {
-    // Add upload logic
-  };
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);

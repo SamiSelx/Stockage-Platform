@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { FileIcon } from '@/constants/file-icons';
 import { formatFileSize } from '@/utils/formatFileSize';
 import { formatDate } from '@/utils/formatDate';
+import useUser from '@/hooks/useUser';
+import useFile from '@/hooks/useFile';
 
 interface FileCardProps {
   file: FileI;
@@ -27,6 +29,8 @@ export function FileCard({
   isSelected = false,
   onPreview,
 }: FileCardProps) {
+  const { user } = useUser()
+  const {handleDownload} = useFile()
 
   if (viewMode === 'list') {
     return (
@@ -39,19 +43,19 @@ export function FileCard({
             {onSelect && (
               <Checkbox
                 checked={isSelected}
-                onCheckedChange={() => onSelect(file._id)}
+                onCheckedChange={() => onSelect(file.id)}
                 onClick={(e) => e.stopPropagation()}
               />
             )}
             <FileIcon type={file.type} size={24} />
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{file.name}</p>
+              <p className="font-medium text-sm truncate">{file.filename}</p>
               <p className="text-xs text-muted-foreground">
-                {file.owner} • {formatFileSize(file.size)}
+                {file.owner.firstName} {file.owner.lastName} • {formatFileSize(file.size)}
               </p>
             </div>
             <div className="text-xs text-muted-foreground text-right">
-              {formatDate(file.updatedAt)}
+              {formatDate(new Date(file.updatedAt))}
             </div>
             <button className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-background rounded">
               <MoreVertical size={16} />
@@ -63,7 +67,7 @@ export function FileCard({
             <FileIcon type={file.type} size={16} className="mr-2" />
             Preview
           </ContextMenuItem>
-          <ContextMenuItem>
+          <ContextMenuItem onClick={()=> handleDownload(file)}>
             <Download size={16} className="mr-2" />
             Download
           </ContextMenuItem>
@@ -97,7 +101,7 @@ export function FileCard({
               className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => {
                 e.stopPropagation();
-                onSelect(file._id);
+                onSelect(file.id);
               }}
             >
               <Checkbox checked={isSelected} />
@@ -116,17 +120,17 @@ export function FileCard({
 
           {/* File Info */}
           <div className="min-w-0">
-            <p className="font-medium text-sm truncate" title={file.name}>
-              {file.name}
+            <p className="font-medium text-sm truncate" title={file.filename}>
+              {file.filename}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {formatFileSize(file.size)}
             </p>
             <p className="text-xs text-muted-foreground">
-              {formatDate(file.updatedAt)}
+              {formatDate(new Date(file.updatedAt))}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              {file.owner}
+              {file.owner.lastName} {file.owner.firstName} ({file.owner._id == (user as UserI)._id ? "You" : ""})
             </p>
           </div>
         </div>
@@ -136,7 +140,7 @@ export function FileCard({
           <FileIcon type={file.type} size={16} className="mr-2" />
           Preview
         </ContextMenuItem>
-        <ContextMenuItem>
+        <ContextMenuItem onClick={()=> handleDownload(file)}>
           <Download size={16} className="mr-2" />
           Download
         </ContextMenuItem>

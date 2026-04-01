@@ -13,11 +13,12 @@ import TestCryptoPage from "./pages/test";
 import Folder from "./pages/Dashboard/MyDrive/Folders/FolderDetails";
 import Folders from "./pages/Dashboard/MyDrive/Folders";
 import { MyDriveLayout } from "./pages/Dashboard/MyDrive/layout/MyDriveLayout";
+import ProtectRoute from "./components/ProtectRoute";
 
 const router = createBrowserRouter([
   {
     path: "/dashboard",
-    element: <DashboardLayout />,
+    element: <ProtectRoute><DashboardLayout /></ProtectRoute>,
     children: [
       { index: true, element: <Overview /> }, // /dashboard
       {

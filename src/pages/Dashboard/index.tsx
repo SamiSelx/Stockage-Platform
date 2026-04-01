@@ -18,6 +18,10 @@ export default function Overview() {
   const [supprimerFichier] = useSupprimerFichierMutation();
 
   const [files, setFiles] = useState<FileI[]>(AllFiles);
+  
+//   const handleDeleteFile = (_id: string) => {
+//     setFiles(files.filter((f) => f.id !== _id));
+
 
   useEffect(() => {
     setFiles(AllFiles);
@@ -40,7 +44,7 @@ export default function Overview() {
   const handleDeleteFile = async (_id: string) => {
     try {
       await supprimerFichier(_id).unwrap();
-      setFiles((prev) => prev.filter((f) => f._id !== _id));
+      setFiles((prev) => prev.filter((f) => f.id !== _id));
       toast.success(
         "File moved to Corbeille. This is not a permanent delete. Delete permanently from Corbeille.",
       );
