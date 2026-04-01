@@ -9,6 +9,8 @@ import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import useTitle from "@/hooks/useTitle";
+import { deriveKEK, encryptRMK, generateRMK } from "@/utils/crypto";
+import uint8ToBase64 from "@/utils/convertBase64";
 
 export default function Register() {
   useTitle("Stockage Platform - Inscription");
@@ -16,8 +18,17 @@ export default function Register() {
   const { user, setUser, removeUser } = useUser();
   const navigate = useNavigate();
 
+  const initUser = async (password: string) => {
+      console.log("=== INIT USER ===");
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const kek = await deriveKEK(password, salt);
+      const rmk = await generateRMK();
+      const { encryptedRMK, iv } = await encryptRMK(rmk, kek);
+      return { salt, encryptedRMK, rmk_iv: iv }
+    };
+
   useEffect(() => {
-    if (user && Object.keys(user).length != 0) navigate("/");
+    if (user && Object.keys(user).length != 0) navigate("/dashboard");
   }, [user]);
 
   const formik = useFormik<RegisterI & { confirmPassword: string }>({
@@ -29,8 +40,11 @@ export default function Register() {
       confirmPassword: "",
     },
     validationSchema: RegisterSchema,
-    onSubmit: (body) => {
-      register(body)
+    onSubmit: async (body) => {
+      const { salt, encryptedRMK, rmk_iv } = await initUser(body.password)
+      const userData = { ...body, salt: uint8ToBase64(salt), encryptedRMK: uint8ToBase64(encryptedRMK), rmk_iv: uint8ToBase64(rmk_iv) }
+      console.log("=== USER INIT ===", userData);
+      register({ ...body, salt: uint8ToBase64(salt), encryptedRMK: uint8ToBase64(encryptedRMK), rmk_iv: uint8ToBase64(rmk_iv) })
         .unwrap()
         .then((res) => {
           setUser(res.data)

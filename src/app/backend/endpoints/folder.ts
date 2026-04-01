@@ -4,12 +4,12 @@ const API_FOLDER = '/folder'
 
 export const apiFolder = api.injectEndpoints({
     endpoints: (build) => ({
-        getFolders: build.query<ResponseI<{currentParent:string, folders: FolderI[]}>, void>({
-            query: () => ({
-                url: `${API_FOLDER}/`,
+        getFolders: build.query<ResponseI<{currentParent:string, folders: FolderI[]}>, string | undefined>({
+            query: (parentFolder?:string) => ({
+                url: `${API_FOLDER}?parentFolder=${parentFolder}`,
                 method: "GET",
             }),
-            providesTags: ["folder"]
+            providesTags: ["folder","file"]
         }),
         createFolder: build.mutation<ResponseI<FolderI>, { name: string; parentFolder?: string }>({
             query: (body) => ({

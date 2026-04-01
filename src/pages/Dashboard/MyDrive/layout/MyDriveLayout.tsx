@@ -5,7 +5,6 @@ import { Outlet, useNavigate, useParams } from "react-router";
 export function MyDriveLayout() {
   const params = useParams(); // folder id
   const navigate = useNavigate();
-  console.log("id is ",params.folderId);
   
 
   const { data:folderData } = useGetFolderByIdQuery(params.folderId!, { skip: !params.folderId });

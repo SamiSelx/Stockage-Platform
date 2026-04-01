@@ -10,4 +10,7 @@ interface UserI{
     createdAt:string;
     enable:boolean;
     token?:string;
+    encryptedRMK: string;
+    salt: string;
+    rmk_iv: string;
 }

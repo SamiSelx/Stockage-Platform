@@ -9,6 +9,8 @@ import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import useTitle from "@/hooks/useTitle";
+import { cacheRMKForSession, decryptRMK, deriveKEK, generateSessionKey } from "@/utils/crypto";
+import { base64ToUint8Array } from "@/utils/convertBase64";
 
 export default function Login() {
   useTitle("Stockage Platform - Connexion");
@@ -17,7 +19,7 @@ export default function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user && Object.keys(user).length != 0) navigate("/");
+    if (user && Object.keys(user).length != 0) navigate("/dashboard");
   }, [user]);
 
   const formik = useFormik<LoginI>({
@@ -26,17 +28,34 @@ export default function Login() {
       password: "",
     },
     validationSchema: LoginSchema,
-    onSubmit: (body) => {
+    onSubmit: async (body) => {
       login(body)
         .unwrap()
-        .then((res) => {
+        .then(async (res) => {
           setUser(res.data);
+          const salt = base64ToUint8Array(res.data?.salt as string);
+          const encryptedRMK = base64ToUint8Array(res.data?.encryptedRMK as string);
+          const iv = base64ToUint8Array(res.data?.rmk_iv as string);
+
+          // derive KEK
+          const kek = await deriveKEK(body.password, salt);
+
+          // decrypt RMK
+          const rmk = await decryptRMK(encryptedRMK, kek, iv);
+          
+          // generate session key
+          generateSessionKey();
+
+          // cache RMK for refresh
+          await cacheRMKForSession(rmk);
+
           toast.success("Connexion réussie",{
             // title: "Connexion réussie",
             description: res.message,
           });
         })
         .catch((err) => {
+          console.log(err)
           removeUser();
           toast.error("Erreur de connexion", {
             // title: "Erreur de connexion",

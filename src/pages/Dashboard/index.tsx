@@ -15,7 +15,7 @@ export default function Overview() {
   const remainingQuota = totalQuota - usedQuota;
 
   const handleDeleteFile = (_id: string) => {
-    setFiles(files.filter((f) => f._id !== _id));
+    setFiles(files.filter((f) => f.id !== _id));
   };
 
   const handleUploadFile = () => {
