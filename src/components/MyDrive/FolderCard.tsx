@@ -67,7 +67,7 @@ export function FolderCard({
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm truncate">{folder.name}</p>
               <p className="text-xs text-muted-foreground">
-                {folder?.itemCount ?? 0} items
+                {folder?.itemsCount ?? 0} items
               </p>
             </div>
             <div className="text-xs text-muted-foreground text-right">
@@ -138,7 +138,7 @@ export function FolderCard({
               {folder.name}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {folder?.itemCount ?? 0} items
+              {folder?.itemsCount ?? 0} items
             </p>
             <p className="text-xs text-muted-foreground">
               {formatDate(new Date(folder.updatedAt))}

@@ -9,6 +9,10 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
+import { useLogoutMutation } from "@/app/backend/endpoints/auth";
+import { toast } from "sonner";
+import { useNavigate } from "react-router";
+import useUser from "@/hooks/useUser";
 
 export default function Navbar({
   viewMode,
@@ -17,6 +21,29 @@ export default function Navbar({
   searchQuery,
   onSearchChange,
 }: NavbarProps) {
+  const navigate =  useNavigate()
+  const {removeUser} = useUser()
+  const [logout] = useLogoutMutation()
+
+
+  async function handleLogout(){
+      logout()
+        .unwrap()
+        .then((data) => { 
+          removeUser()
+          // navigate("/login")
+          toast.success("Déconnexion réussie", {
+            description: data.message
+          });
+         })
+        .catch((err) => { 
+          toast.error("Erreur lors de la déconnexion", {
+            description: err.data?.error || "Une erreur est survenue"
+          });
+          navigate("/login")
+          removeUser()
+         })
+    }
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background">
       <div className="flex items-center justify-between gap-4 p-4">
@@ -73,7 +100,7 @@ export default function Navbar({
               type="file"
               id="file-upload"
               className="hidden"
-              onChange={() => onUpload()}
+              onChange={(e) => onUpload(e)}
               multiple
             />
             <Button asChild variant="outline" size="icon" title="Upload files">
@@ -91,10 +118,10 @@ export default function Navbar({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Help & feedback</DropdownMenuItem>
-              <DropdownMenuItem>Keyboard shortcuts</DropdownMenuItem>
-              <DropdownMenuItem>Sign out</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer">Settings</DropdownMenuItem>
+              {/* <DropdownMenuItem>Help & feedback</DropdownMenuItem>
+              <DropdownMenuItem>Keyboard shortcuts</DropdownMenuItem> */}
+              <DropdownMenuItem className="cursor-pointer" onClick={()=> handleLogout()}>Sign out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

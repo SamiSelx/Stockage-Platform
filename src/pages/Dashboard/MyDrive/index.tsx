@@ -7,7 +7,6 @@ import {
   EmptyState,
   UploadZone,
 } from "@/components/MyDrive/utility-components";
-import { mockFileSystem } from "@/constants/mock-data";
 import { FolderCard } from "@/components/MyDrive/FolderCard";
 import { useNavigate } from "react-router";
 import { useGetFilesQuery } from "@/app/backend/endpoints/file";
@@ -24,14 +23,11 @@ export default function Drive() {
 
 
   // Api Get Folders & Files
-  const {data: filesData, isLoading: isFilesLoading} = useGetFilesQuery()
-  const {data: foldersResponse, isLoading: isFoldersLoading} = useGetFoldersQuery()
-  const files = filesData?.data || []
+  const {data: filesResponse, isLoading: isFilesLoading} = useGetFilesQuery(undefined)
+  const {data: foldersResponse, isLoading: isFoldersLoading} = useGetFoldersQuery(undefined)
+  const filesData = filesResponse?.data as {currentFolder: string; files: FileI[]; storage: {storageUsed: number; storageLimit: number}} || []
   const foldersData = foldersResponse?.data as { currentParent: string; folders: FolderI[] } ?? [];
-  console.log("files , folders ",files,foldersData);
   
-  // Filter folders and files based on breadcrumb path
-  // Filter by search query from backend
 
   // Filter files and folders based on search
   const filteredItems = useMemo(() => {
@@ -39,11 +35,11 @@ export default function Drive() {
     const folders = foldersData.folders?.filter((f) =>
       f.name.toLowerCase().includes(query),
     );
-    const files = mockFileSystem.files.filter((f) =>
-      f.name.toLowerCase().includes(query),
+    const files = filesData.files?.filter((f) =>
+      f.filename.toLowerCase().includes(query),
     );
     return { folders, files };
-  }, [searchQuery,foldersData.folders]);
+  }, [searchQuery,foldersData.folders,filesData.files]);
 
  
 
@@ -82,7 +78,8 @@ export default function Drive() {
   //   }
   // };
 
-  const isEmpty = (filteredItems?.folders?.length ?? 0) === 0 && filteredItems.files.length === 0;
+
+  const isEmpty = (filteredItems?.folders?.length ?? 0) === 0 && filteredItems.files?.length === 0;
 
   if(isFilesLoading || isFoldersLoading) {
     return (
@@ -105,7 +102,6 @@ export default function Drive() {
           {isEmpty ? (
             <EmptyState
               onCreateFolder={() => setShowCreateFolder(true)}
-              onUpload={() => console.log("Upload clicked")}
             />
           ) : (
             <>
@@ -132,13 +128,13 @@ export default function Drive() {
                     />
                   ))}
                   {/* Files */}
-                  {filteredItems.files.map((file) => (
+                  {filteredItems.files?.map((file) => (
                     <FileCard
-                      key={file._id}
+                      key={file.id}
                       file={file}
                       viewMode={viewMode}
                       onSelect={handleSelectFile}
-                      isSelected={selectedFiles.has(file._id)}
+                      isSelected={selectedFiles.has(file.id)}
                       onPreview={handlePreviewFile}
                     />
                   ))}

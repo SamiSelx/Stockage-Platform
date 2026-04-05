@@ -1,4 +1,4 @@
-import { useLoginMutation } from "@/app/backend/endpoints/auth";
+import { useLoginMutation, useLogoutMutation } from "@/app/backend/endpoints/auth";
 import { Button } from "@/components/ui/Button";
 import useUser from "@/hooks/useUser";
 import { LoginSchema } from "@/schemas/LoginSchema";
@@ -9,15 +9,18 @@ import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import useTitle from "@/hooks/useTitle";
+import { cacheRMKForSession, decryptPrivateKey, decryptRMK, deriveKEK, generateSessionKey, storeRSAKeys } from "@/utils/crypto";
+import { base64ToUint8Array } from "@/utils/convertBase64";
 
 export default function Login() {
   useTitle("Stockage Platform - Connexion");
   const [login, { isLoading }] = useLoginMutation();
   const { user, setUser, removeUser } = useUser();
+  const [logout] = useLogoutMutation()
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user && Object.keys(user).length != 0) navigate("/");
+    if (user && Object.keys(user).length != 0) navigate("/dashboard");
   }, [user]);
 
   const formik = useFormik<LoginI>({
@@ -26,18 +29,54 @@ export default function Login() {
       password: "",
     },
     validationSchema: LoginSchema,
-    onSubmit: (body) => {
+    onSubmit: async (body) => {
       login(body)
         .unwrap()
-        .then((res) => {
+        .then(async (res) => {
           setUser(res.data);
+          const salt = base64ToUint8Array(res.data?.salt as string);
+          const encryptedRMK = base64ToUint8Array(res.data?.encryptedRMK as string);
+          const iv = base64ToUint8Array(res.data?.rmk_iv as string);
+
+          // derive KEK
+          const kek = await deriveKEK(body.password, salt);
+
+          // decrypt RMK
+          const rmk = await decryptRMK(encryptedRMK, kek, iv);
+
+          
+          // generate session key
+          generateSessionKey();
+
+          // cache RMK for refresh
+          await cacheRMKForSession(rmk);
+
+          const encryptedPrivateKey = base64ToUint8Array(
+            res.data?.encryptedPrivateKey as string
+          );
+          const privateKey_iv = base64ToUint8Array(
+            res.data?.privateKey_iv as string
+          );
+          const publicKey = base64ToUint8Array(res.data?.publicKey as string);
+
+          // decrypt private key (for sharing features)
+          const privateKey = await decryptPrivateKey(
+            encryptedPrivateKey,
+            privateKey_iv,
+            kek
+          );
+          
+          await storeRSAKeys(publicKey, privateKey);
+
           toast.success("Connexion réussie",{
             // title: "Connexion réussie",
             description: res.message,
           });
         })
-        .catch((err) => {
+        .catch(async (err) => {
+          console.log(err)
           removeUser();
+          await logout();
           toast.error("Erreur de connexion", {
             // title: "Erreur de connexion",
             description: err.data?.error || "Une erreur est survenue",
