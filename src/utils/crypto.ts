@@ -67,9 +67,9 @@ export async function encryptRMK(
   const encrypted = await webCrypto.subtle.encrypt(
     {
       name: "AES-GCM",
-      iv,
+      iv: iv.buffer,
       tagLength: 128,
-    },
+    } as AesGcmParams,
     kek,
     rawRMK,
   );
@@ -88,15 +88,14 @@ export async function decryptRMK(
   kek: CryptoKey,
   iv: Uint8Array,
 ): Promise<CryptoKey> {
-  const buffer =
-    encryptedRMK instanceof Uint8Array ? encryptedRMK.buffer : encryptedRMK;
-
+  
+  const buffer = (encryptedRMK instanceof Uint8Array ? encryptedRMK.buffer : encryptedRMK) as ArrayBuffer;
   const decrypted = await webCrypto.subtle.decrypt(
     {
       name: "AES-GCM",
-      iv,
+      iv: iv.buffer,
       tagLength: 128,
-    },
+    } as AesGcmParams,
     kek,
     buffer,
   );
@@ -137,9 +136,9 @@ export async function encryptFileWithFK(
   const encrypted = await webCrypto.subtle.encrypt(
     {
       name: "AES-GCM",
-      iv,
+      iv: iv.buffer,
       tagLength: 128,
-    },
+    } as AesGcmParams,
     fileKey,
     buffer,
   );
@@ -163,9 +162,9 @@ export async function wrapFileKey(
   const encrypted = await webCrypto.subtle.encrypt(
     {
       name: "AES-GCM",
-      iv,
+      iv: iv.buffer, 
       tagLength: 128,
-    },
+    } as AesGcmParams,
     rmk,
     rawFK,
   );
@@ -190,9 +189,9 @@ export async function unwrapFileKey(
   const decrypted = await webCrypto.subtle.decrypt(
     {
       name: "AES-GCM",
-      iv,
+      iv: iv.buffer,
       tagLength: 128,
-    },
+    } as AesGcmParams,
     rmk,
     buffer,
   );
@@ -253,59 +252,124 @@ export async function changePassword(
 }
 
 
-// export async function saveRMKForSession(rmk: CryptoKey) {
-//   const rawRMK = await crypto.subtle.exportKey("raw", rmk);
+export async function generateRSAKeyPair(): Promise<CryptoKeyPair> {
+  return crypto.subtle.generateKey(
+    {
+      name: "RSA-OAEP",
+      modulusLength: 4096,
+      publicExponent: new Uint8Array([1, 0, 1]),
+      hash: "SHA-256",
+    },
+    true,
+    ["encrypt", "decrypt"]
+  );
+}
 
-//   const iv = crypto.getRandomValues(new Uint8Array(12));
-//   const key = await crypto.subtle.importKey(
-//     "raw",
-//     window._sessionKey,
-//     "AES-GCM",
-//     true,
-//     ["encrypt"]
-//   );
+export async function decryptPrivateKey(
+  encryptedPrivateKey: Uint8Array,
+  iv: Uint8Array,
+  kek: CryptoKey
+): Promise<CryptoKey> {
+  const decrypted = await webCrypto.subtle.decrypt(
+    { name: "AES-GCM", iv: iv.buffer, tagLength: 128 } as AesGcmParams,
+    kek,
+    encryptedPrivateKey
+  );
 
-//   const encrypted = await crypto.subtle.encrypt(
-//     { name: "AES-GCM", iv },
-//     key,
-//     rawRMK
-//   );
+  return webCrypto.subtle.importKey(
+    "pkcs8",
+    decrypted,
+    { name: "RSA-OAEP", hash: "SHA-256" },
+    true,
+    ["decrypt"]
+  );
+}
 
-//   // Save encrypted RMK + IV in IndexedDB
-//   await setItem("encryptedRMK", { data: Array.from(new Uint8Array(encrypted)), iv: Array.from(iv) });
-// }
+// Encrypt FK with public key
 
-// export async function loadRMKFromSession(): Promise<CryptoKey | null> {
-//   if (!window._sessionKey) return null; // sessionKey lost → need password
+export async function encryptWithPublicKey(
+  data: ArrayBuffer,
+  publicKey: CryptoKey
+): Promise<ArrayBuffer> {
+  return crypto.subtle.encrypt(
+    { name: "RSA-OAEP" },
+    publicKey,
+    data
+  );
+}
 
-//   const stored = await getItem("encryptedRMK");
-//   if (!stored) return null;
+// Decrypt with private key
 
-//   const encryptedRMK = new Uint8Array(stored.data);
-//   const iv = new Uint8Array(stored.iv);
+export async function decryptWithPrivateKey(
+  encrypted: ArrayBuffer,
+  privateKey: CryptoKey
+): Promise<ArrayBuffer> {
+  return crypto.subtle.decrypt(
+    { name: "RSA-OAEP" },
+    privateKey,
+    encrypted
+  );
+}
 
-//   const key = await crypto.subtle.importKey(
-//     "raw",
-//     window._sessionKey,
-//     "AES-GCM",
-//     true,
-//     ["decrypt"]
-//   );
+export async function protectPrivateKey(
+  privateKey: CryptoKey,
+  publicKey: CryptoKey,
+  kek: CryptoKey
+): Promise<{
+  publicKey: Uint8Array;
+  encryptedPrivateKey: Uint8Array;
+  privateKey_iv: Uint8Array;
+}> {
+  // export keys
+  const rawPrivateKey = await webCrypto.subtle.exportKey("pkcs8", privateKey);
+  const rawPublicKey = await webCrypto.subtle.exportKey("spki", publicKey);
 
-//   const decrypted = await crypto.subtle.decrypt(
-//     { name: "AES-GCM", iv },
-//     key,
-//     encryptedRMK
-//   );
+  // IV for encryption
+  const iv = webCrypto.getRandomValues(new Uint8Array(IV_LENGTH));
 
-//   return crypto.subtle.importKey(
-//     "raw",
-//     decrypted,
-//     { name: "AES-GCM" },
-//     false,
-//     ["encrypt", "decrypt"]
-//   );
-// }
+  // encrypt private key using KEK
+  const encryptedPrivateKey = await webCrypto.subtle.encrypt(
+    {
+      name: "AES-GCM",
+      iv: iv.buffer,
+      tagLength: 128,
+    } as AesGcmParams,
+    kek,
+    rawPrivateKey
+  );
+
+  return {
+    publicKey: new Uint8Array(rawPublicKey),
+    encryptedPrivateKey: new Uint8Array(encryptedPrivateKey),
+    privateKey_iv: iv,
+  };
+}
+
+// ===============================
+// STORE RSA KEYPAIR IN INDEXEDDB
+// ===============================
+export async function storeRSAKeys(
+  publicKey: CryptoKey | Uint8Array,
+  privateKey: CryptoKey
+): Promise<void> {
+  // export private key to Uint8Array for storage
+  const exportedPrivateKey = await webCrypto.subtle.exportKey("pkcs8", privateKey);
+  const privateKeyUint8 = new Uint8Array(exportedPrivateKey);
+
+  // store public key
+  // if publicKey is CryptoKey, export to Uint8Array first
+  let publicKeyUint8: Uint8Array;
+  if ((publicKey as CryptoKey).type) {
+    const exportedPublicKey = await webCrypto.subtle.exportKey("spki", publicKey as CryptoKey);
+    publicKeyUint8 = new Uint8Array(exportedPublicKey);
+  } else {
+    publicKeyUint8 = publicKey as Uint8Array;
+  }
+
+  // store both in IndexedDB
+  await idbSet("publicKey", publicKeyUint8);
+  await idbSet("privateKey", privateKeyUint8);
+}
 
 // ===============================
 // SESSION MANAGEMENT
@@ -365,22 +429,35 @@ async function idbGet(key: string): Promise<any> {
 }
 
 // ===============================
-// SESSION KEY GENERATION
+// SESSION KEY GENERATION (Dual storage)
 // ===============================
 
-export function generateSessionKey(): Uint8Array {
+export async function generateSessionKey(): Promise<Uint8Array> {
   const key = webCrypto.getRandomValues(new Uint8Array(32));
+  const encoded = btoa(String.fromCharCode(...key));
 
-  sessionStorage.setItem(
-    SESSION_KEY_NAME,
-    btoa(String.fromCharCode(...key))
-  );
+  // store in sessionStorage
+  sessionStorage.setItem(SESSION_KEY_NAME, encoded);
+
+  // store in IndexedDB
+  await idbSet(SESSION_KEY_NAME, encoded);
 
   return key;
 }
 
-export function getSessionKey(): Uint8Array | null {
-  const stored = sessionStorage.getItem(SESSION_KEY_NAME);
+export async function getSessionKey(): Promise<Uint8Array | null> {
+  // try sessionStorage first
+  let stored = sessionStorage.getItem(SESSION_KEY_NAME);
+
+  // fallback to IndexedDB
+  if (!stored) {
+    stored = await idbGet(SESSION_KEY_NAME);
+    if (stored) {
+      // restore to sessionStorage for faster access next time
+      sessionStorage.setItem(SESSION_KEY_NAME, stored);
+    }
+  }
+
   if (!stored) return null;
 
   const bytes = atob(stored)
@@ -391,13 +468,13 @@ export function getSessionKey(): Uint8Array | null {
 }
 
 // ===============================
-// SAVE RMK FOR SESSION
+// SAVE RMK FOR SESSION (Dual storage)
 // ===============================
 
 export async function cacheRMKForSession(
   rmk: CryptoKey
 ): Promise<void> {
-  const sessionKey = getSessionKey();
+  const sessionKey = await getSessionKey();
   if (!sessionKey) throw new Error("No session key");
 
   const rawRMK = await webCrypto.subtle.exportKey("raw", rmk);
@@ -418,22 +495,59 @@ export async function cacheRMKForSession(
     rawRMK
   );
 
-  await idbSet(SESSION_RMK_NAME, {
+  const payload = {
     encryptedRMK: new Uint8Array(encrypted),
     iv,
-  });
+  };
+
+  // store in IndexedDB
+  await idbSet(SESSION_RMK_NAME, payload);
+
+  // also store in sessionStorage as base64 JSON
+  const base64Payload = {
+    encryptedRMK: btoa(String.fromCharCode(...payload.encryptedRMK)),
+    iv: btoa(String.fromCharCode(...payload.iv)),
+  };
+  sessionStorage.setItem(SESSION_RMK_NAME, JSON.stringify(base64Payload));
 }
 
 // ===============================
-// RESTORE RMK FROM SESSION
+// RESTORE RMK FROM SESSION (Dual storage)
 // ===============================
 
 export async function restoreRMKFromSession(): Promise<CryptoKey | null> {
-  const sessionKey = getSessionKey();
+  const sessionKey = await getSessionKey();
   if (!sessionKey) return null;
 
-  const stored = await idbGet(SESSION_RMK_NAME);
-  if (!stored) return null;
+  let stored = null;
+
+  // first try sessionStorage
+  const sessionData = sessionStorage.getItem(SESSION_RMK_NAME);
+  if (sessionData) {
+    const parsed = JSON.parse(sessionData);
+    stored = {
+      encryptedRMK: Uint8Array.from(
+        atob(parsed.encryptedRMK),
+        (c) => c.charCodeAt(0)
+      ),
+      iv: Uint8Array.from(
+        atob(parsed.iv),
+        (c) => c.charCodeAt(0)
+      ),
+    };
+  } else {
+    // fallback to IndexedDB
+    const idbData = await idbGet(SESSION_RMK_NAME);
+    if (!idbData) return null;
+    stored = idbData;
+
+    // restore to sessionStorage for faster future access
+    const base64Payload = {
+      encryptedRMK: btoa(String.fromCharCode(...stored.encryptedRMK)),
+      iv: btoa(String.fromCharCode(...stored.iv)),
+    };
+    sessionStorage.setItem(SESSION_RMK_NAME, JSON.stringify(base64Payload));
+  }
 
   const key = await webCrypto.subtle.importKey(
     "raw",
@@ -444,12 +558,9 @@ export async function restoreRMKFromSession(): Promise<CryptoKey | null> {
   );
 
   const decrypted = await webCrypto.subtle.decrypt(
-    {
-      name: "AES-GCM",
-      iv: new Uint8Array(stored.iv),
-    },
+    { name: "AES-GCM", iv: stored.iv },
     key,
-    new Uint8Array(stored.encryptedRMK)
+    stored.encryptedRMK
   );
 
   return webCrypto.subtle.importKey(
@@ -459,4 +570,33 @@ export async function restoreRMKFromSession(): Promise<CryptoKey | null> {
     false,
     ["encrypt", "decrypt"]
   );
+}
+
+// ===============================
+// CLEAR SESSION (Optional logout helper)
+// ===============================
+
+export async function clearSession(): Promise<void> {
+  sessionStorage.removeItem(SESSION_KEY_NAME);
+  sessionStorage.removeItem(SESSION_RMK_NAME);
+  const db = await openSessionDB();
+  const tx = db.transaction(SESSION_STORE, "readwrite");
+  const store = tx.objectStore(SESSION_STORE);
+  store.clear();
+}
+
+export async function clearSessionTotaly(): Promise<void> {
+  // clear sessionStorage
+  sessionStorage.removeItem(SESSION_KEY_NAME);
+  sessionStorage.removeItem(SESSION_RMK_NAME);
+
+  // delete entire IndexedDB database
+  await new Promise<void>((resolve, reject) => {
+    const deleteRequest = indexedDB.deleteDatabase(SESSION_DB);
+    deleteRequest.onsuccess = () => resolve();
+    deleteRequest.onerror = () => reject(deleteRequest.error);
+    deleteRequest.onblocked = () => {
+      console.warn("Deletion blocked, please close other tabs using the DB");
+    };
+  });
 }

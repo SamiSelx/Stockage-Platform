@@ -12,7 +12,7 @@ export const apiAuth = api.injectEndpoints({
             }),
             invalidatesTags: ["auth"]
         }),
-        register: build.mutation<ResponseI<UserI>, RegisterI & { salt: string; encryptedRMK: string; rmk_iv: string }>({
+        register: build.mutation<ResponseI<UserI>, RegisterI & { salt: string; encryptedRMK: string; rmk_iv: string; publicKey: string; encryptedPrivateKey: string; privateKey_iv: string }>({
             query: (body) => ({
                 url: `${API_AUTH}/register`,
                 method: "POST",

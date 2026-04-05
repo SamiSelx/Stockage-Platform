@@ -28,8 +28,6 @@ export default function Drive() {
   const filesData = filesResponse?.data as {currentFolder: string; files: FileI[]; storage: {storageUsed: number; storageLimit: number}} || []
   const foldersData = foldersResponse?.data as { currentParent: string; folders: FolderI[] } ?? [];
   
-  // Filter folders and files based on breadcrumb path
-  // Filter by search query from backend
 
   // Filter files and folders based on search
   const filteredItems = useMemo(() => {

@@ -9,7 +9,13 @@ import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import useTitle from "@/hooks/useTitle";
-import { deriveKEK, encryptRMK, generateRMK } from "@/utils/crypto";
+import {
+  deriveKEK,
+  encryptRMK,
+  generateRMK,
+  generateRSAKeyPair,
+  protectPrivateKey,
+} from "@/utils/crypto";
 import uint8ToBase64 from "@/utils/convertBase64";
 
 export default function Register() {
@@ -19,13 +25,31 @@ export default function Register() {
   const navigate = useNavigate();
 
   const initUser = async (password: string) => {
-      console.log("=== INIT USER ===");
-      const salt = crypto.getRandomValues(new Uint8Array(16));
-      const kek = await deriveKEK(password, salt);
-      const rmk = await generateRMK();
-      const { encryptedRMK, iv } = await encryptRMK(rmk, kek);
-      return { salt, encryptedRMK, rmk_iv: iv }
+    console.log("=== INIT USER ===");
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const kek = await deriveKEK(password, salt);
+    const rmk = await generateRMK();
+    const { encryptedRMK, iv: rmk_iv } = await encryptRMK(rmk, kek);
+    // generate RSA keypair (for sharing)
+    const { publicKey, privateKey } = await generateRSAKeyPair();
+
+    const {
+      publicKey: exportedPublicKey,
+      encryptedPrivateKey,
+      privateKey_iv,
+    } = await protectPrivateKey(privateKey, publicKey, kek);
+
+    return {
+      salt,
+      encryptedRMK,
+      rmk_iv,
+
+      publicKey: new Uint8Array(exportedPublicKey),
+
+      encryptedPrivateKey: new Uint8Array(encryptedPrivateKey),
+      privateKey_iv: privateKey_iv,
     };
+  };
 
   useEffect(() => {
     if (user && Object.keys(user).length != 0) navigate("/dashboard");
@@ -41,21 +65,34 @@ export default function Register() {
     },
     validationSchema: RegisterSchema,
     onSubmit: async (body) => {
-      const { salt, encryptedRMK, rmk_iv } = await initUser(body.password)
-      const userData = { ...body, salt: uint8ToBase64(salt), encryptedRMK: uint8ToBase64(encryptedRMK), rmk_iv: uint8ToBase64(rmk_iv) }
-      console.log("=== USER INIT ===", userData);
-      register({ ...body, salt: uint8ToBase64(salt), encryptedRMK: uint8ToBase64(encryptedRMK), rmk_iv: uint8ToBase64(rmk_iv) })
+      const {
+        salt,
+        encryptedRMK,
+        rmk_iv,
+        publicKey,
+        encryptedPrivateKey,
+        privateKey_iv,
+      } = await initUser(body.password);
+      register({
+        ...body,
+        salt: uint8ToBase64(salt),
+        encryptedRMK: uint8ToBase64(encryptedRMK),
+        rmk_iv: uint8ToBase64(rmk_iv),
+        publicKey: uint8ToBase64(publicKey),
+        encryptedPrivateKey: uint8ToBase64(encryptedPrivateKey),
+        privateKey_iv: uint8ToBase64(privateKey_iv),
+      })
         .unwrap()
         .then((res) => {
-          setUser(res.data)
+          setUser(res.data);
           toast.success("Inscription réussie", {
-            description: res.message
+            description: res.message,
           });
         })
         .catch((err) => {
-          removeUser()
+          removeUser();
           toast.error("Erreur d'inscription", {
-            description: err.data?.error || "Une erreur est survenue"
+            description: err.data?.error || "Une erreur est survenue",
           });
         });
     },
@@ -212,36 +249,3 @@ export default function Register() {
     </div>
   );
 }
-
-// const inputs = [
-//   {
-//     id: "firstName",
-//     label: "First Name",
-//     type: "text",
-//     placeholder: "Prénom",
-//   },
-//   {
-//     id: "lastName",
-//     label: "Last Name",
-//     type: "text",
-//     placeholder: "Nom",
-//   },
-//   {
-//     id: "email",
-//     label: "Email",
-//     type: "text",
-//     placeholder: "Email",
-//   },
-//   {
-//     id: "password",
-//     label: "Password",
-//     type: "password",
-//     placeholder: "Mot de passe",
-//   },
-//   {
-//     id: "confirmPassword",
-//     label: "Confirm Password",
-//     type: "password",
-//     placeholder: "Confirm Password",
-//   },
-// ];
