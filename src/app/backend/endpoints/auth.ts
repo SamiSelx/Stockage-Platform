@@ -27,6 +27,27 @@ export const apiAuth = api.injectEndpoints({
             }),
             invalidatesTags: ["auth"]
         }),
+        getCryptoMaterial: build.mutation<ResponseI<Pick<UserI, "salt" | "encryptedRMK" | "rmk_iv">>, void>({
+            query: () => ({
+                url: `${API_AUTH}/crypto-material`,
+                method: "GET",
+            }),
+            invalidatesTags: ["auth"]
+        }),
+        changePassword: build.mutation<ResponseI<UserI>, {
+            oldPassword: string;
+            newPassword: string;
+            salt: string;
+            encryptedRMK: string;
+            rmk_iv: string;
+        }>({
+            query: (body) => ({
+                url: `${API_AUTH}/change-password`,
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: ["auth"]
+        }),
         logout: build.mutation<ResponseI<null>, void>({
             query: () => ({
                 url: `${API_AUTH}/logout`,
@@ -37,4 +58,4 @@ export const apiAuth = api.injectEndpoints({
     })
 })
 
-export const { useLoginMutation, useRegisterMutation, useGetUserMutation, useLogoutMutation } = apiAuth;
+export const { useLoginMutation, useRegisterMutation, useGetUserMutation, useGetCryptoMaterialMutation, useChangePasswordMutation, useLogoutMutation } = apiAuth;
