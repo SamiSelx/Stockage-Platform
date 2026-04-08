@@ -345,6 +345,49 @@ export async function protectPrivateKey(
   };
 }
 
+
+// Sharing
+
+export async function encryptFKForUser(
+  fileKey: CryptoKey,
+  recipientPublicKey: CryptoKey
+): Promise<Uint8Array> {
+
+  const rawFK = await crypto.subtle.exportKey("raw", fileKey);
+
+  const encrypted = await crypto.subtle.encrypt(
+    {
+      name: "RSA-OAEP"
+    },
+    recipientPublicKey,
+    rawFK
+  );
+
+  return new Uint8Array(encrypted);
+}
+
+export async function decryptSharedFK(
+  encryptedFK: Uint8Array,
+  privateKey: CryptoKey
+): Promise<CryptoKey> {
+
+  const decrypted = await crypto.subtle.decrypt(
+    {
+      name: "RSA-OAEP"
+    },
+    privateKey,
+    encryptedFK
+  );
+
+  return crypto.subtle.importKey(
+    "raw",
+    decrypted,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
 // ===============================
 // STORE RSA KEYPAIR IN INDEXEDDB
 // ===============================

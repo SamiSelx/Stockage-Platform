@@ -5,7 +5,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { MoreVertical, Download, Trash2, Edit } from 'lucide-react';
+import { MoreVertical, Download, Trash2, Edit, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 // import { useState } from 'react';
 import { FileIcon } from '@/constants/file-icons';
@@ -13,6 +13,8 @@ import { formatFileSize } from '@/utils/formatFileSize';
 import { formatDate } from '@/utils/formatDate';
 import useUser from '@/hooks/useUser';
 import useFile from '@/hooks/useFile';
+import { ShareFileDialog } from '../ShareFile/share-file-dialog';
+import { useState } from 'react';
 
 interface FileCardProps {
   file: FileI;
@@ -29,9 +31,15 @@ export function FileCard({
   isSelected = false,
   onPreview,
 }: FileCardProps) {
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<FileI | null>(null)
+
+  const handleShareClick = (file: FileI) => {
+    setSelectedFile(file)
+    setShareDialogOpen(true)
+  }
   const { user } = useUser()
   const {handleDownload} = useFile()
-  console.log("file f",file)
 
   if (viewMode === 'list') {
     return (
@@ -64,6 +72,10 @@ export function FileCard({
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
+          <ContextMenuItem onClick={() => handleShareClick(file)}>
+            <Share2 type={file.type} size={16} className="mr-2" />
+            Share
+          </ContextMenuItem>
           <ContextMenuItem onClick={() => onPreview?.(file)}>
             <FileIcon type={file.type} size={16} className="mr-2" />
             Preview
@@ -81,13 +93,24 @@ export function FileCard({
             Delete
           </ContextMenuItem>
         </ContextMenuContent>
+        {selectedFile && (
+        <ShareFileDialog
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          fileName={selectedFile.filename}
+          fileId={selectedFile.id}
+        />
+      )}
       </ContextMenu>
+      
     );
+    
   }
 
   // Grid view
   return (
-    <ContextMenu>
+    <>
+      <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
           className={cn(
@@ -137,6 +160,10 @@ export function FileCard({
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
+        <ContextMenuItem onClick={() => handleShareClick(file)}>
+            <Share2 type={file.type} size={16} className="mr-2" />
+            Share
+          </ContextMenuItem>
         <ContextMenuItem onClick={() => onPreview?.(file)}>
           <FileIcon type={file.type} size={16} className="mr-2" />
           Preview
@@ -154,6 +181,16 @@ export function FileCard({
           Delete
         </ContextMenuItem>
       </ContextMenuContent>
+      
     </ContextMenu>
+    {selectedFile && (
+        <ShareFileDialog
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          fileName={selectedFile.filename}
+          fileId={selectedFile.id}
+        />
+      )}
+    </>
   );
 }
