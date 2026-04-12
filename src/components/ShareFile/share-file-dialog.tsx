@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -11,22 +11,18 @@ import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Copy, Check, Link2, FileIcon, Lock, Eye, EyeOff, Search, User, Mail, X } from 'lucide-react'
 import { useGetAllUsersQuery } from '@/app/backend/endpoints/user'
+import { useShareFileMutation } from '@/app/backend/endpoints/file'
+import { encryptFKForUser, importPublicKey, restoreRMKFromSession, unwrapFileKey } from '@/utils/crypto'
+import uint8ToBase64, { base64ToUint8Array } from '@/utils/convertBase64'
 
-// Mock user database - replace with real API call
-const mockUsers = [
-  { id: '1', name: 'Alice Johnson', email: 'alice@example.com', avatar: '👩' },
-  { id: '2', name: 'Bob Smith', email: 'bob@example.com', avatar: '👨' },
-  { id: '3', name: 'Carol Davis', email: 'carol@example.com', avatar: '👩' },
-  { id: '4', name: 'David Wilson', email: 'david@example.com', avatar: '👨' },
-  { id: '5', name: 'Emma Brown', email: 'emma@example.com', avatar: '👩' },
-  { id: '6', name: 'Frank Miller', email: 'frank@example.com', avatar: '👨' },
-]
 
 interface ShareFileDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   fileName: string
-  fileId: string
+  fileId: string;
+  encryptedFK: string;
+  fk_iv:string
 }
 
 export function ShareFileDialog({
@@ -34,10 +30,14 @@ export function ShareFileDialog({
   onOpenChange,
   fileName,
   fileId,
+  encryptedFK,
+  fk_iv
 }: ShareFileDialogProps) {
+    const [users, setUsers] = useState<UserI[]>([])
     const {data: usersData} = useGetAllUsersQuery()
-    const users = usersData?.data || []
-    console.log("user", users);
+    // const users = usersData?.data || []
+    console.log("user", users,fileId);
+    const [shareFile] = useShareFileMutation()
     
   const [copied, setCopied] = useState<'link' | 'key' | null>(null)
   const [showKey, setShowKey] = useState(false)
@@ -48,6 +48,12 @@ export function ShareFileDialog({
   // Generate share link and encryption key
   const shareLink = `https://cryptodrive.app/shared/${fileId}`
   const encryptionKey = `enc_${fileId}_${Math.random().toString(36).substring(2, 15)}`
+
+  useEffect(()=>{
+    if(usersData?.data){
+        setUsers(usersData?.data)
+    }
+  },[usersData?.data])
 
   // Filter users based on search query
   const filteredUsers = useMemo(() => {
@@ -61,10 +67,10 @@ export function ShareFileDialog({
   // Users already selected
   const availableUsers = filteredUsers.filter(user => !selectedUsers.some(s => s._id === user._id))
 
-  const handleSelectUser = (user: UserI) => {
-    setSelectedUsers([...selectedUsers, user])
-    setSearchQuery('')
-  }
+  // const handleSelectUser = (user: UserI) => {
+  //   setSelectedUsers([...selectedUsers, user])
+  //   setSearchQuery('')
+  // }
 
   const handleRemoveUser = (userId: string) => {
     setSelectedUsers(selectedUsers.filter(u => u._id !== userId))
@@ -74,6 +80,38 @@ export function ShareFileDialog({
     navigator.clipboard.writeText(text)
     setCopied(type)
     setTimeout(() => setCopied(null), 2000)
+  }
+
+  async function handleShareFile(user: UserI) {
+   try{
+ const rmk = await restoreRMKFromSession();
+ console.log("rrmm ",rmk)
+            if (!rmk)
+              throw new Error("Please log in again.");
+
+            console.log("encrypted FK",encryptedFK, "fk iv", user);
+            
+    
+            // unwrap the file key
+            const fileKey = await unwrapFileKey(
+              base64ToUint8Array(encryptedFK),
+              rmk,
+              base64ToUint8Array(fk_iv),
+            );
+            const publicKey = await importPublicKey(base64ToUint8Array(user.publicKey));
+            const encryptedFKForRecipient = await encryptFKForUser(fileKey, publicKey);
+
+    shareFile({ fileId, recipientId: user._id, encryptedFK: uint8ToBase64(encryptedFKForRecipient) })
+        .unwrap()
+        .then(data => {
+            console.log("File shared successfully:", data);
+        })
+        .catch(error => {
+            console.error("Error sharing file:", error);
+        });
+   }catch(err){
+        console.error("Error sharing file:", err)
+   }
   }
 
   return (
@@ -173,7 +211,7 @@ export function ShareFileDialog({
                     <Card
                       key={user._id}
                       className="p-3 bg-background hover:bg-secondary/50 border-border hover:border-primary/30 transition-colors cursor-pointer"
-                      onClick={() => handleSelectUser(user)}
+                      // onClick={() => handleSelectUser(user)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -190,6 +228,7 @@ export function ShareFileDialog({
                           size="sm"
                           variant="outline"
                           className="text-xs"
+                          onClick={()=> handleShareFile(user)}
                         >
                           Share
                         </Button>
