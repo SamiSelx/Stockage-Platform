@@ -99,6 +99,8 @@ export function FileCard({
           onOpenChange={setShareDialogOpen}
           fileName={selectedFile.filename}
           fileId={selectedFile.id}
+          encryptedFK={selectedFile.encryptedFK}
+          fk_iv={selectedFile.fk_iv}
         />
       )}
       </ContextMenu>
@@ -189,6 +191,8 @@ export function FileCard({
           onOpenChange={setShareDialogOpen}
           fileName={selectedFile.filename}
           fileId={selectedFile.id}
+          encryptedFK={selectedFile.encryptedFK}
+          fk_iv={selectedFile.fk_iv}
         />
       )}
     </>

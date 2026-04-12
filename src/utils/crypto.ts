@@ -200,7 +200,7 @@ export async function unwrapFileKey(
     "raw",
     decrypted,
     { name: "AES-GCM" },
-    false,
+    true,
     ["encrypt", "decrypt"],
   );
 }
@@ -347,6 +347,20 @@ export async function protectPrivateKey(
 
 
 // Sharing
+export async function importPublicKey(
+  rawPublicKey: Uint8Array
+): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    "spki",
+    rawPublicKey,
+    {
+      name: "RSA-OAEP",
+      hash: "SHA-256",
+    },
+    true,
+    ["encrypt"]
+  );
+}
 
 export async function encryptFKForUser(
   fileKey: CryptoKey,
