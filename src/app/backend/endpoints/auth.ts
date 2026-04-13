@@ -2,6 +2,60 @@ import api from "../index";
 
 const API_AUTH = "auth"
 
+export interface CertificateSubjectI {
+    userId: string;
+    email: string;
+}
+
+export interface MiniCertificateI {
+    certId: string;
+    serialNumber: string;
+    subject: CertificateSubjectI;
+    issuer: string;
+    signPublicKeySpkiB64: string;
+    keyUsage: string[];
+    sigAlg: string;
+    notBefore: string;
+    notAfter: string;
+}
+
+export interface EnrollCertificateRequestI {
+    userId: string;
+    email: string;
+    signPublicKeySpkiB64: string;
+    proofOfAccount?: string;
+    token?: string;
+}
+
+export interface EnrollCertificateResponseI {
+    certificate: MiniCertificateI;
+    caSignatureB64: string;
+    caCertFingerprint?: string;
+}
+
+export interface StartIdentityChallengeRequestI {
+    email: string;
+    token?: string;
+}
+
+export interface StartIdentityChallengeResponseI {
+    challengeId: string;
+    nonceB64: string;
+    expiresAt: string;
+    serverTime: string;
+    sigAlgRequired?: string;
+}
+
+export interface VerifyIdentityChallengeRequestI {
+    challengeId: string;
+    certificate: MiniCertificateI;
+    caSignatureB64: string;
+    clientTimestamp: string;
+    signedPayloadB64: string;
+    signatureB64: string;
+    token?: string;
+}
+
 export const apiAuth = api.injectEndpoints({
     endpoints: (build) => ({
         login: build.mutation<ResponseI<UserI>, LoginI>({
@@ -54,8 +108,45 @@ export const apiAuth = api.injectEndpoints({
                 method: "GET",
             }),
             invalidatesTags: ["auth"]
+        }),
+        enrollCertificate: build.mutation<ResponseI<EnrollCertificateResponseI>, EnrollCertificateRequestI>({
+            query: ({ token, ...body }) => ({
+                url: `${API_AUTH}/cert/enroll`,
+                method: "POST",
+                body,
+                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            }),
+            invalidatesTags: ["auth"]
+        }),
+        startIdentityChallenge: build.mutation<ResponseI<StartIdentityChallengeResponseI>, StartIdentityChallengeRequestI>({
+            query: ({ token, ...body }) => ({
+                url: `${API_AUTH}/challenge/start`,
+                method: "POST",
+                body,
+                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            }),
+            invalidatesTags: ["auth"]
+        }),
+        verifyIdentityChallenge: build.mutation<ResponseI<UserI>, VerifyIdentityChallengeRequestI>({
+            query: ({ token, ...body }) => ({
+                url: `${API_AUTH}/challenge/verify`,
+                method: "POST",
+                body,
+                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            }),
+            invalidatesTags: ["auth"]
         })
     })
 })
 
-export const { useLoginMutation, useRegisterMutation, useGetUserMutation, useGetCryptoMaterialMutation, useChangePasswordMutation, useLogoutMutation } = apiAuth;
+export const {
+  useLoginMutation,
+  useRegisterMutation,
+  useGetUserMutation,
+  useGetCryptoMaterialMutation,
+  useChangePasswordMutation,
+  useLogoutMutation,
+  useEnrollCertificateMutation,
+  useStartIdentityChallengeMutation,
+  useVerifyIdentityChallengeMutation,
+} = apiAuth;

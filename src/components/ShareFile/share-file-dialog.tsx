@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/card'
 import { Copy, Check, Link2, FileIcon, Lock, Eye, EyeOff, Search, User, Mail, X } from 'lucide-react'
 import { useGetAllUsersQuery } from '@/app/backend/endpoints/user'
 import { useShareFileMutation } from '@/app/backend/endpoints/file'
-import { encryptFKForUser, importPublicKey, restoreRMKFromSession, unwrapFileKey } from '@/utils/crypto'
+import { encryptFKForUser, importPublicKey, isMiniCertificateCurrentlyValid, restoreRMKFromSession, unwrapFileKey } from '@/utils/crypto'
 import uint8ToBase64, { base64ToUint8Array } from '@/utils/convertBase64'
 
 
@@ -84,6 +84,16 @@ export function ShareFileDialog({
 
   async function handleShareFile(user: UserI) {
    try{
+            const certValidationEnabled = import.meta.env.VITE_ENABLE_CERT_AUTH === "true";
+            if (certValidationEnabled) {
+              const cert = user.identityCertificate;
+              const validDate = isMiniCertificateCurrentlyValid(cert);
+              const subjectMatches = !!cert && cert.subject?.userId === user._id && cert.subject?.email === user.email;
+              if (!cert || !validDate || !subjectMatches) {
+                throw new Error("Recipient certificate is missing or invalid");
+              }
+            }
+
  const rmk = await restoreRMKFromSession();
  console.log("rrmm ",rmk)
             if (!rmk)

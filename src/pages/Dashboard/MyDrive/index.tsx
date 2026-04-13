@@ -1,7 +1,5 @@
 import { useState, useMemo } from "react";
-import {
-  FilePreviewModal,
-} from "@/components/MyDrive/CreateFolderModel";
+import { FilePreviewModal } from "@/components/MyDrive/CreateFolderModel";
 import { FileCard } from "@/components/MyDrive/FileCard";
 import {
   EmptyState,
@@ -15,19 +13,26 @@ import { Loader2 } from "lucide-react";
 import useFolder from "@/hooks/useFolder";
 
 export default function Drive() {
-  const navigate = useNavigate()
-  const {viewMode, searchQuery, setShowCreateFolder} = useFolder()
+  const navigate = useNavigate();
+  const { viewMode, searchQuery, setShowCreateFolder } = useFolder();
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [selectedFile, setSelectedFile] = useState<FileI | null>(null);
   const [showFilePreview, setShowFilePreview] = useState(false);
 
-
   // Api Get Folders & Files
-  const {data: filesResponse, isLoading: isFilesLoading} = useGetFilesQuery(undefined)
-  const {data: foldersResponse, isLoading: isFoldersLoading} = useGetFoldersQuery(undefined)
-  const filesData = filesResponse?.data as {currentFolder: string; files: FileI[]; storage: {storageUsed: number; storageLimit: number}} || []
-  const foldersData = foldersResponse?.data as { currentParent: string; folders: FolderI[] } ?? [];
-  
+  const { data: filesResponse, isLoading: isFilesLoading } =
+    useGetFilesQuery(undefined);
+  const { data: foldersResponse, isLoading: isFoldersLoading } =
+    useGetFoldersQuery(undefined);
+  const filesData =
+    (filesResponse?.data as {
+      currentFolder: string | null;
+      files: FileI[];
+      storage: { storageUsed: number; storageLimit: number };
+    }) || [];
+  const foldersData =
+    (foldersResponse?.data as { currentParent: string; folders: FolderI[] }) ??
+    [];
 
   // Filter files and folders based on search
   const filteredItems = useMemo(() => {
@@ -39,9 +44,7 @@ export default function Drive() {
       f.filename.toLowerCase().includes(query),
     );
     return { folders, files };
-  }, [searchQuery,foldersData.folders,filesData.files]);
-
- 
+  }, [searchQuery, foldersData.folders, filesData.files]);
 
   const handleSelectFile = (fileId: string) => {
     // selecting files or folders to perform actions like move or delete
@@ -55,7 +58,6 @@ export default function Drive() {
     }
     setSelectedFiles(newSelected);
   };
-
 
   const handlePreviewFile = (file: FileI) => {
     setSelectedFile(file);
@@ -78,15 +80,16 @@ export default function Drive() {
   //   }
   // };
 
+  const isEmpty =
+    (filteredItems?.folders?.length ?? 0) === 0 &&
+    filteredItems.files?.length === 0;
 
-  const isEmpty = (filteredItems?.folders?.length ?? 0) === 0 && filteredItems.files?.length === 0;
-
-  if(isFilesLoading || isFoldersLoading) {
+  if (isFilesLoading || isFoldersLoading) {
     return (
       <div className="h-[80vh] w-full flex items-center justify-center">
-          <Loader2 className="animate-spin" size={24}/>
+        <Loader2 className="animate-spin" size={24} />
       </div>
-    )
+    );
   }
 
   return (
@@ -100,9 +103,7 @@ export default function Drive() {
         <main className="flex-1 ">
           {/* Empty State */}
           {isEmpty ? (
-            <EmptyState
-              onCreateFolder={() => setShowCreateFolder(true)}
-            />
+            <EmptyState onCreateFolder={() => setShowCreateFolder(true)} />
           ) : (
             <>
               {/* Upload Zone */}
@@ -117,16 +118,17 @@ export default function Drive() {
                   className={`${viewMode == "grid" ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" : "divide-y divide-border"}`}
                 >
                   {/* Folders */}
-                  {foldersData && filteredItems.folders?.map((folder) => (
-                    <FolderCard
-                      key={folder.id}
-                      folder={folder}
-                      viewMode={viewMode}
-                      onSelect={handleSelectFile}
-                      isSelected={selectedFiles.has(folder.id)}
-                      onOpen={handleOpenFolder}
-                    />
-                  ))}
+                  {foldersData &&
+                    filteredItems.folders?.map((folder) => (
+                      <FolderCard
+                        key={folder.id}
+                        folder={folder}
+                        viewMode={viewMode}
+                        onSelect={handleSelectFile}
+                        isSelected={selectedFiles.has(folder.id)}
+                        onOpen={handleOpenFolder}
+                      />
+                    ))}
                   {/* Files */}
                   {filteredItems.files?.map((file) => (
                     <FileCard

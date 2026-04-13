@@ -30,10 +30,10 @@ interface UploadFileI {
   fk_iv: string;
   mimetype: string;
   originalName: string;
-  size: number
+  size: number;
 }
 
-interface FileDataI{
+interface FileDataI {
   file: { filename: string; mimetype?: string };
   encryptedData: string;
 }
@@ -41,7 +41,7 @@ interface FileDataI{
 //for API responses
 interface GetRecentFilesResponse {
   files: FileI[];
-};
+}
 interface GetStarredFilesResponse {
   files: FileI[];
 }
@@ -55,7 +55,7 @@ interface GetTrashFilesResponse {
 //     parentFolder: string | null;
 //   } | null;
 interface ListeFilesResponse {
-  currentFolder: string;
+  currentFolder: string | null;
   files: FileI[];
   storage: {
     storageUsed: number;
@@ -65,15 +65,15 @@ interface ListeFilesResponse {
 }
 
 interface StatisticResponse {
-  totalFiles: number,
-  totalFolders: number,
-  archivedFiles: number,
-  archivedFolders: number,
-  starredFiles: number,
-  openedFiles: number,
+  totalFiles: number;
+  totalFolders: number;
+  archivedFiles: number;
+  archivedFolders: number;
+  starredFiles: number;
+  openedFiles: number;
   storage: {
-    used: number,
-    total: number,
-    remaining: number
-  }
+    used: number;
+    total: number;
+    remaining: number;
+  };
 }
