@@ -1,7 +1,5 @@
 import { useState, useMemo } from "react";
-import {
-  FilePreviewModal,
-} from "@/components/MyDrive/CreateFolderModel";
+import { FilePreviewModal } from "@/components/MyDrive/CreateFolderModel";
 import { FileCard } from "@/components/MyDrive/FileCard";
 import {
   EmptyState,
@@ -19,10 +17,10 @@ export default function Drive() {
   const navigate = useNavigate()
   const {viewMode, searchQuery, setShowCreateFolder} = useFolder()
   const { handleUpload } = useFile();
+
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [selectedFile, setSelectedFile] = useState<FileI | null>(null);
   const [showFilePreview, setShowFilePreview] = useState(false);
-
 
   // Api Get Folders & Files
   const {data: sharedFilesData} = useGetSharedFilesQuery()
@@ -31,6 +29,7 @@ export default function Drive() {
   const filesData = filesResponse?.data as {currentFolder: string; files: FileI[]; storage: {storageUsed: number; storageLimit: number}} || []
   const foldersData = foldersResponse?.data as { currentParent: string; folders: FolderI[] } ?? [];
   
+
 
   // Filter files and folders based on search
   const filteredItems = useMemo(() => {
@@ -58,9 +57,6 @@ const files = [...ownedFiles, ...sharedFiles];
     return { folders, files };
   }, [searchQuery,foldersData.folders,filesData.files, sharedFilesData?.data]);
 
- console.log("filess ",filteredItems);
- 
-
   const handleSelectFile = (fileId: string) => {
     // selecting files or folders to perform actions like move or delete
     console.log("file selected ", fileId);
@@ -73,7 +69,6 @@ const files = [...ownedFiles, ...sharedFiles];
     }
     setSelectedFiles(newSelected);
   };
-
 
   const handlePreviewFile = (file: FileI) => {
     setSelectedFile(file);
@@ -96,15 +91,16 @@ const files = [...ownedFiles, ...sharedFiles];
   //   }
   // };
 
+  const isEmpty =
+    (filteredItems?.folders?.length ?? 0) === 0 &&
+    filteredItems.files?.length === 0;
 
-  const isEmpty = (filteredItems?.folders?.length ?? 0) === 0 && filteredItems.files?.length === 0;
-
-  if(isFilesLoading || isFoldersLoading) {
+  if (isFilesLoading || isFoldersLoading) {
     return (
       <div className="h-[80vh] w-full flex items-center justify-center">
-          <Loader2 className="animate-spin" size={24}/>
+        <Loader2 className="animate-spin" size={24} />
       </div>
-    )
+    );
   }
 
   return (
@@ -118,9 +114,7 @@ const files = [...ownedFiles, ...sharedFiles];
         <main className="flex-1 ">
           {/* Empty State */}
           {isEmpty ? (
-            <EmptyState
-              onCreateFolder={() => setShowCreateFolder(true)}
-            />
+            <EmptyState onCreateFolder={() => setShowCreateFolder(true)} />
           ) : (
             <>
               {/* Upload Zone */}
@@ -135,16 +129,17 @@ const files = [...ownedFiles, ...sharedFiles];
                   className={`${viewMode == "grid" ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" : "divide-y divide-border"}`}
                 >
                   {/* Folders */}
-                  {foldersData && filteredItems.folders?.map((folder) => (
-                    <FolderCard
-                      key={folder.id}
-                      folder={folder}
-                      viewMode={viewMode}
-                      onSelect={handleSelectFile}
-                      isSelected={selectedFiles.has(folder.id)}
-                      onOpen={handleOpenFolder}
-                    />
-                  ))}
+                  {foldersData &&
+                    filteredItems.folders?.map((folder) => (
+                      <FolderCard
+                        key={folder.id}
+                        folder={folder}
+                        viewMode={viewMode}
+                        onSelect={handleSelectFile}
+                        isSelected={selectedFiles.has(folder.id)}
+                        onOpen={handleOpenFolder}
+                      />
+                    ))}
                   {/* Files */}
                   {filteredItems.files?.map((file) => (
                     <FileCard

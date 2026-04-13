@@ -28,6 +28,7 @@ import {
   encryptFKForUser,
   importPublicKey,
   restoreRMKFromSession,
+  isMiniCertificateCurrentlyValid,
   unwrapFileKey,
 } from "@/utils/crypto";
 import uint8ToBase64, { base64ToUint8Array } from "@/utils/convertBase64";
@@ -105,12 +106,22 @@ export function ShareFileDialog({
   };
 
   async function handleShareFile(user: UserI) {
-    try {
-      const rmk = await restoreRMKFromSession();
-      console.log("rrmm ", rmk);
-      if (!rmk) throw new Error("Please log in again.");
 
-      console.log("encrypted FK", encryptedFK, "fk iv", user);
+   try{
+            const certValidationEnabled = import.meta.env.VITE_ENABLE_CERT_AUTH === "true";
+            if (certValidationEnabled) {
+              const cert = user.identityCertificate;
+              const validDate = isMiniCertificateCurrentlyValid(cert);
+              const subjectMatches = !!cert && cert.subject?.userId === user._id && cert.subject?.email === user.email;
+              if (!cert || !validDate || !subjectMatches) {
+                throw new Error("Recipient certificate is missing or invalid");
+              }
+            }
+
+ const rmk = await restoreRMKFromSession();
+ console.log("rrmm ",rmk)
+            if (!rmk)
+              throw new Error("Please log in again.");
 
       // unwrap the file key
       const fileKey = await unwrapFileKey(

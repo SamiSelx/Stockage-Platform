@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { useLogoutMutation } from "@/app/backend/endpoints/auth";
 import { toast } from "sonner";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import useUser from "@/hooks/useUser";
 
 export default function Navbar({
@@ -66,6 +66,10 @@ export default function Navbar({
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+          <Link to="/change-password" className="text-sm text-muted-foreground hover:text-foreground">
+            change Password ?
+          </Link>
+
           {/* View Toggle */}
           <div className="flex items-center gap-1 rounded-lg border border-border p-1">
             <button
@@ -118,10 +122,17 @@ export default function Navbar({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem className="cursor-pointer">Settings</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer">
+                Settings
+              </DropdownMenuItem>
               {/* <DropdownMenuItem>Help & feedback</DropdownMenuItem>
               <DropdownMenuItem>Keyboard shortcuts</DropdownMenuItem> */}
-              <DropdownMenuItem className="cursor-pointer" onClick={()=> handleLogout()}>Sign out</DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => handleLogout()}
+              >
+                Sign out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
