@@ -1,5 +1,3 @@
-
-
 import { Search, UploadCloud, Settings, Grid3x3, List } from "lucide-react";
 
 import {
@@ -11,7 +9,11 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
-
+import { useLogoutMutation } from "@/app/backend/endpoints/auth";
+import { toast } from "sonner";
+import { Link, useNavigate } from "react-router";
+import useUser from "@/hooks/useUser";
+import { useState } from "react";
 
 export default function Navbar({
   viewMode,
@@ -20,6 +22,30 @@ export default function Navbar({
   searchQuery,
   onSearchChange,
 }: NavbarProps) {
+  const navigate =  useNavigate()
+  const {removeUser} = useUser()
+  const [logout] = useLogoutMutation()
+  const [fileInputKey, setFileInputKey] = useState(0);
+
+
+  async function handleLogout(){
+      logout()
+        .unwrap()
+        .then((data) => { 
+          removeUser()
+          // navigate("/login")
+          toast.success("Déconnexion réussie", {
+            description: data.message
+          });
+         })
+        .catch((err) => { 
+          toast.error("Erreur lors de la déconnexion", {
+            description: err.data?.error || "Une erreur est survenue"
+          });
+          navigate("/login")
+          removeUser()
+         })
+    }
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background">
       <div className="flex items-center justify-between gap-4 p-4">
@@ -42,6 +68,10 @@ export default function Navbar({
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+          <Link to="/change-password" className="text-sm text-muted-foreground hover:text-foreground">
+            change Password ?
+          </Link>
+
           {/* View Toggle */}
           <div className="flex items-center gap-1 rounded-lg border border-border p-1">
             <button
@@ -71,14 +101,24 @@ export default function Navbar({
           </div>
 
           {/* Upload Button */}
-          <Button
-            onClick={onUpload}
-            variant="outline"
-            size="icon"
-            title="Upload files"
-          >
-            <UploadCloud size={18} />
-          </Button>
+          <div>
+            <Input
+              key={fileInputKey}
+              type="file"
+              id={`file-upload-${fileInputKey}`}
+              className="hidden"
+              onChange={(e) => {
+                onUpload(e.target.files ?? undefined)
+                setFileInputKey(prev => prev + 1);
+              }}
+              multiple
+            />
+            <Button asChild variant="outline" size="icon" title="Upload files">
+              <label htmlFor={`file-upload-${fileInputKey}`} className="cursor-pointer">
+                <UploadCloud size={18} />
+              </label>
+            </Button>
+          </div>
 
           {/* Settings Menu */}
           <DropdownMenu>
@@ -88,10 +128,17 @@ export default function Navbar({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Help & feedback</DropdownMenuItem>
-              <DropdownMenuItem>Keyboard shortcuts</DropdownMenuItem>
-              <DropdownMenuItem>Sign out</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer">
+                Settings
+              </DropdownMenuItem>
+              {/* <DropdownMenuItem>Help & feedback</DropdownMenuItem>
+              <DropdownMenuItem>Keyboard shortcuts</DropdownMenuItem> */}
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => handleLogout()}
+              >
+                Sign out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

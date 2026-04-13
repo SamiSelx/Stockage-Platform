@@ -6,10 +6,17 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { MoreVertical, Trash2, Edit, FolderOpen } from 'lucide-react';
+import { Trash2, Edit, FolderOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { formatDate } from '@/utils/formatDate';
+import useUser from '@/hooks/useUser';
+import { useDeleteFolderMutation } from '@/app/backend/endpoints/folder';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Button } from '../ui/Button';
+import useFolder from '@/hooks/useFolder';
 
 interface FolderCardProps {
   folder: FolderI;
@@ -27,10 +34,43 @@ export function FolderCard({
   onOpen,
 }: FolderCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const {user} = useUser()
+  const [deleteFolder] = useDeleteFolderMutation()
+  const {handleRenameFolder} = useFolder()
+
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  
+  const handleRenameClick = (folder: FolderI) => {
+    setRenameValue(folder.name);
+    setRenameDialogOpen(true);
+  };
+  
+  const handleRenameConfirm = async () => {
+    if (!renameValue.trim()) return;
+    await handleRenameFolder(folder.id, renameValue.trim());
+    setRenameDialogOpen(false);
+  };
+  
+  async function handleDeleteFolder() {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer le dossier "${folder.name}" ? Cette action ne peut pas être annulée.`)) {
+      deleteFolder(folder.id)
+      .unwrap()
+      .then(() => {
+        toast.success("Dossier supprimé avec succès")
+      })
+      .catch(() => {
+        toast.error("Erreur lors de la suppression du dossier")
+      });
+      
+    }
+  }
+
 
   if (viewMode === 'list') {
     return (
-      <ContextMenu>
+      <>
+        <ContextMenu>
         <ContextMenuTrigger asChild>
           <div
             className="flex items-center gap-4 border-b border-border px-4 py-3 hover:bg-accent transition-colors cursor-pointer group"
@@ -39,7 +79,7 @@ export function FolderCard({
             {onSelect && (
               <Checkbox
                 checked={isSelected}
-                onCheckedChange={() => onSelect(folder._id)}
+                onCheckedChange={() => onSelect(folder.id)}
                 onClick={(e) => e.stopPropagation()}
               />
             )}
@@ -47,15 +87,15 @@ export function FolderCard({
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm truncate">{folder.name}</p>
               <p className="text-xs text-muted-foreground">
-                {folder.itemCount} items
+                {folder?.itemsCount ?? 0} items
               </p>
             </div>
             <div className="text-xs text-muted-foreground text-right">
-              {formatDate(folder.updatedAt)}
+              {formatDate(new Date(folder.updatedAt))}
             </div>
-            <button className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-background rounded">
+            {/* <button className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-background rounded">
               <MoreVertical size={16} />
-            </button>
+            </button> */}
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
@@ -63,22 +103,46 @@ export function FolderCard({
             <FolderOpen size={16} className="mr-2" />
             Open
           </ContextMenuItem>
-          <ContextMenuItem>
+          <ContextMenuItem onClick={() => handleRenameClick(folder)}>
             <Edit size={16} className="mr-2" />
             Rename
           </ContextMenuItem>
-          <ContextMenuItem className="text-red-600">
+          <ContextMenuItem className="text-red-600" onClick={handleDeleteFolder}>
             <Trash2 size={16} className="mr-2" />
             Delete
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
+      {/* Rename Dialog */}
+          <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rename folder</DialogTitle>
+        </DialogHeader>
+        <Input
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleRenameConfirm()}
+          autoFocus
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleRenameConfirm}>
+            Rename
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+      </>
     );
   }
 
   // Grid view
   return (
-    <ContextMenu>
+    <>
+      <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
           className={cn(
@@ -95,7 +159,7 @@ export function FolderCard({
               className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => {
                 e.stopPropagation();
-                onSelect(folder._id);
+                onSelect(folder.id);
               }}
             >
               <Checkbox checked={isSelected} />
@@ -103,9 +167,9 @@ export function FolderCard({
           )}
 
           {/* More Menu */}
-          <button className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-background rounded">
+          {/* <button className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-background rounded">
             <MoreVertical size={16} />
-          </button>
+          </button> */}
 
           {/* Folder Icon */}
           <div className="mb-3">
@@ -118,13 +182,13 @@ export function FolderCard({
               {folder.name}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {folder.itemCount} items
+              {folder?.itemsCount ?? 0} items
             </p>
             <p className="text-xs text-muted-foreground">
-              {formatDate(folder.updatedAt)}
+              {formatDate(new Date(folder.updatedAt))}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              {folder.owner}
+              {folder?.owner.lastName} {folder?.owner.firstName} {folder?.owner._id === (user as UserI)?._id && "(You)"}
             </p>
           </div>
         </div>
@@ -134,15 +198,38 @@ export function FolderCard({
           <FolderOpen size={16} className="mr-2" />
           Open
         </ContextMenuItem>
-        <ContextMenuItem>
+        <ContextMenuItem onClick={() => handleRenameClick(folder)}>
           <Edit size={16} className="mr-2" />
           Rename
         </ContextMenuItem>
-        <ContextMenuItem className="text-red-600">
+        <ContextMenuItem className="text-red-600" onClick={handleDeleteFolder}>
           <Trash2 size={16} className="mr-2" />
           Delete
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
+    {/* Rename Dialog */}
+          <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rename folder</DialogTitle>
+        </DialogHeader>
+        <Input
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleRenameConfirm()}
+          autoFocus
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleRenameConfirm}>
+            Rename
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

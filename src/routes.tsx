@@ -8,24 +8,52 @@ import Recent from "./pages/Dashboard/Recent";
 import Starred from "./pages/Dashboard/Starred";
 import Trash from "./pages/Dashboard/Trash";
 import Drive from "./pages/Dashboard/MyDrive";
+import TestCryptoPage from "./pages/test";
 
+import Folder from "./pages/Dashboard/MyDrive/Folders/FolderDetails";
+import Folders from "./pages/Dashboard/MyDrive/Folders";
+import { MyDriveLayout } from "./pages/Dashboard/MyDrive/layout/MyDriveLayout";
+import ProtectRoute from "./components/ProtectRoute";
+import ChangePW from "./pages/changePw";
+import ForgotPassword from "./pages/ForgetPassword";
 
 const router = createBrowserRouter([
   {
     path: "/dashboard",
-    element: <DashboardLayout />,
+    element: <ProtectRoute><DashboardLayout /></ProtectRoute>,
     children: [
       { index: true, element: <Overview /> }, // /dashboard
-      { path: "my-drive", element: <Drive /> }, // /dashboard/my-drive
+      {
+        path: "my-drive",
+        element: <MyDriveLayout />,
+        children: [
+          {
+            index: true,
+            element: <Drive />,
+          },
+          {
+            path: "folders",
+            element: <Folders/>
+          },
+          {
+            path: "folders/:folderId",
+            element: <Folder />,
+          },
+        ]
+      }, // /dashboard/my-drive
+      
       { path: "recent", element: <Recent /> }, // /dashboard/recent
       { path: "starred", element: <Starred /> }, // /dashboard/starred
       { path: "trash", element: <Trash /> }, // /dashboard/trash
-
     ],
   },
   {
     path: "/",
     element: <Home />,
+  },
+  {
+    path: "/test",
+    element: <TestCryptoPage />,
   },
   {
     path: "/login",
@@ -35,6 +63,14 @@ const router = createBrowserRouter([
     path: "/register",
     element: <Register />,
   },
+  {
+    path: "/change-password",
+    element: <ChangePW />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
+  }
 ]);
 
 export default router;

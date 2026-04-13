@@ -5,12 +5,19 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { MoreVertical, Download, Trash2, Edit } from 'lucide-react';
+import { MoreVertical, Download, Trash2, Edit, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 // import { useState } from 'react';
 import { FileIcon } from '@/constants/file-icons';
 import { formatFileSize } from '@/utils/formatFileSize';
 import { formatDate } from '@/utils/formatDate';
+import useUser from '@/hooks/useUser';
+import useFile from '@/hooks/useFile';
+import { ShareFileDialog } from '../ShareFile/share-file-dialog';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Button } from '../ui/Button';
 
 interface FileCardProps {
   file: FileI;
@@ -27,6 +34,29 @@ export function FileCard({
   isSelected = false,
   onPreview,
 }: FileCardProps) {
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<FileI | null>(null)
+
+  const handleShareClick = (file: FileI) => {
+    setSelectedFile(file)
+    setShareDialogOpen(true)
+  }
+  const { user } = useUser()
+  const {handleDownload, handleRenameFile, handleDeleteFile} = useFile()
+
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+const [renameValue, setRenameValue] = useState('');
+
+const handleRenameClick = (file: FileI) => {
+  setRenameValue(file.filename);
+  setRenameDialogOpen(true);
+};
+
+const handleRenameConfirm = async () => {
+  if (!renameValue.trim()) return;
+  await handleRenameFile(file.id, renameValue.trim());
+  setRenameDialogOpen(false);
+};
 
   if (viewMode === 'list') {
     return (
@@ -39,19 +69,19 @@ export function FileCard({
             {onSelect && (
               <Checkbox
                 checked={isSelected}
-                onCheckedChange={() => onSelect(file._id)}
+                onCheckedChange={() => onSelect(file.id)}
                 onClick={(e) => e.stopPropagation()}
               />
             )}
             <FileIcon type={file.type} size={24} />
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{file.name}</p>
+              <p className="font-medium text-sm truncate">{file.filename}</p>
               <p className="text-xs text-muted-foreground">
-                {file.owner} • {formatFileSize(file.size)}
+                {file.owner.firstName} {file.owner.lastName} • {formatFileSize(file.size)}
               </p>
             </div>
             <div className="text-xs text-muted-foreground text-right">
-              {formatDate(file.updatedAt)}
+              {formatDate(new Date(file.updatedAt))}
             </div>
             <button className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-background rounded">
               <MoreVertical size={16} />
@@ -59,30 +89,69 @@ export function FileCard({
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
+          <ContextMenuItem onClick={() => handleShareClick(file)}>
+            <Share2 type={file.type} size={16} className="mr-2" />
+            Share
+          </ContextMenuItem>
           <ContextMenuItem onClick={() => onPreview?.(file)}>
             <FileIcon type={file.type} size={16} className="mr-2" />
             Preview
           </ContextMenuItem>
-          <ContextMenuItem>
+          <ContextMenuItem onClick={()=> handleDownload(file, file?.shared || false)}>
             <Download size={16} className="mr-2" />
             Download
           </ContextMenuItem>
-          <ContextMenuItem>
+          <ContextMenuItem onClick={() => handleRenameClick(file)}>
             <Edit size={16} className="mr-2" />
             Rename
           </ContextMenuItem>
-          <ContextMenuItem className="text-red-600">
+          <ContextMenuItem className="text-red-600" onClick={()=> handleDeleteFile(file.id)}>
             <Trash2 size={16} className="mr-2" />
             Delete
           </ContextMenuItem>
         </ContextMenuContent>
+        {selectedFile && (
+        <ShareFileDialog
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          fileName={selectedFile.filename}
+          fileId={selectedFile.id}
+          encryptedFK={selectedFile.encryptedFK}
+          fk_iv={selectedFile.fk_iv}
+        />
+      )}
+      {/* Rename Dialog */}
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Rename file</DialogTitle>
+    </DialogHeader>
+    <Input
+      value={renameValue}
+      onChange={(e) => setRenameValue(e.target.value)}
+      onKeyDown={(e) => e.key === 'Enter' && handleRenameConfirm()}
+      autoFocus
+    />
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+        Cancel
+      </Button>
+      <Button onClick={handleRenameConfirm}>
+        Rename
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
       </ContextMenu>
+      
     );
+    
   }
 
   // Grid view
   return (
-    <ContextMenu>
+    <>
+      <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
           className={cn(
@@ -97,7 +166,7 @@ export function FileCard({
               className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => {
                 e.stopPropagation();
-                onSelect(file._id);
+                onSelect(file.id);
               }}
             >
               <Checkbox checked={isSelected} />
@@ -116,39 +185,77 @@ export function FileCard({
 
           {/* File Info */}
           <div className="min-w-0">
-            <p className="font-medium text-sm truncate" title={file.name}>
-              {file.name}
+            <p className="font-medium text-sm truncate" title={file.filename}>
+              {file.filename}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {formatFileSize(file.size)}
             </p>
             <p className="text-xs text-muted-foreground">
-              {formatDate(file.updatedAt)}
+              {formatDate(new Date(file.updatedAt))}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              {file.owner}
+              {file.owner.lastName} {file.owner.firstName} ({file.owner._id == (user as UserI)._id ? "You" : "Shared"})
             </p>
           </div>
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
+        <ContextMenuItem onClick={() => handleShareClick(file)}>
+            <Share2 type={file.type} size={16} className="mr-2" />
+            Share
+          </ContextMenuItem>
         <ContextMenuItem onClick={() => onPreview?.(file)}>
           <FileIcon type={file.type} size={16} className="mr-2" />
           Preview
         </ContextMenuItem>
-        <ContextMenuItem>
+        <ContextMenuItem onClick={()=> handleDownload(file, file?.shared || false)}>
           <Download size={16} className="mr-2" />
           Download
         </ContextMenuItem>
-        <ContextMenuItem>
+        <ContextMenuItem onClick={() => handleRenameClick(file)}>
           <Edit size={16} className="mr-2" />
           Rename
         </ContextMenuItem>
-        <ContextMenuItem className="text-red-600">
+        <ContextMenuItem className="text-red-600" onClick={() => handleDeleteFile(file.id)}>
           <Trash2 size={16} className="mr-2" />
           Delete
         </ContextMenuItem>
       </ContextMenuContent>
+      
     </ContextMenu>
+    {selectedFile && (
+        <ShareFileDialog
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          fileName={selectedFile.filename}
+          fileId={selectedFile.id}
+          encryptedFK={selectedFile.encryptedFK}
+          fk_iv={selectedFile.fk_iv}
+        />
+      )}
+      {/* Rename Dialog */}
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Rename file</DialogTitle>
+    </DialogHeader>
+    <Input
+      value={renameValue}
+      onChange={(e) => setRenameValue(e.target.value)}
+      onKeyDown={(e) => e.key === 'Enter' && handleRenameConfirm()}
+      autoFocus
+    />
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+        Cancel
+      </Button>
+      <Button onClick={handleRenameConfirm}>
+        Rename
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+    </>
   );
 }

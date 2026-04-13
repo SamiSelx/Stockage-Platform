@@ -12,23 +12,30 @@ import { useState } from 'react';
 // import { X } from 'lucide-react';
 import { formatFileSize } from '@/utils/formatFileSize';
 import { formatDate } from '@/utils/formatDate';
+import { useParams } from 'react-router';
+import { Loader2 } from 'lucide-react';
+import useUser from '@/hooks/useUser';
+import useFile from '@/hooks/useFile';
 
 interface CreateFolderModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (name: string) => void;
+  onConfirm: (name: string, parentId?: string) => void;
+  isLoading:boolean
 }
 
 export function CreateFolderModal({
   isOpen,
   onClose,
   onConfirm,
+  isLoading
 }: CreateFolderModalProps) {
   const [folderName, setFolderName] = useState('New folder');
+  const param = useParams()
 
   const handleConfirm = () => {
     if (folderName.trim()) {
-      onConfirm(folderName);
+      onConfirm(folderName, param.folderId);
       setFolderName('New folder');
     }
   };
@@ -61,8 +68,13 @@ export function CreateFolderModal({
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleConfirm} className="bg-blue-600 hover:bg-blue-700">
-              Create
+            <Button onClick={handleConfirm} className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className='animate-spin'/>
+                  Creating...
+                </>
+              ) : "Create"}
             </Button>
           </div>
         </div>
@@ -84,15 +96,19 @@ export function FilePreviewModal({
   isOpen,
   onClose,
 }: FilePreviewModalProps) {
+  const { user } = useUser()
+  const {handleDownload} = useFile()
+
   if (!file) return null;
+  
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader className="sr-only">
-          <DialogTitle>{file.name}</DialogTitle>
+          <DialogTitle>{file.filename}</DialogTitle>
           <DialogDescription>
-            Preview and details for {file.name}
+            Preview and details for {file.filename}
           </DialogDescription>
         </DialogHeader>
         {/* <button
@@ -110,7 +126,7 @@ export function FilePreviewModal({
               <p className="text-sm text-muted-foreground">
                 {file.type === 'image'
                   ? '[Image preview would display here]'
-                  : `[${file.type.toUpperCase()} preview would display here]`}
+                  : `[${file.mimetype.toUpperCase()} preview would display here]`}
               </p>
             </div>
           </div>
@@ -119,7 +135,7 @@ export function FilePreviewModal({
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-muted-foreground">Name</p>
-              <p className="font-medium break-words">{file.name}</p>
+              <p className="font-medium break-words">{file.filename}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Size</p>
@@ -127,15 +143,15 @@ export function FilePreviewModal({
             </div>
             <div>
               <p className="text-muted-foreground">Type</p>
-              <p className="font-medium capitalize">{file.type}</p>
+              <p className="font-medium capitalize">{file.mimetype.split("/")[1]}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Modified</p>
-              <p className="font-medium">{formatDate(file.updatedAt)}</p>
+              <p className="font-medium">{formatDate(new Date(file.updatedAt))}</p>
             </div>
             <div className="col-span-2">
               <p className="text-muted-foreground">Owner</p>
-              <p className="font-medium">{file.owner}</p>
+              <p className="font-medium">{file.owner.lastName} {file.owner.firstName} ({file.owner._id == (user as UserI)._id ? "You" : ""})</p>
             </div>
           </div>
 
@@ -144,7 +160,9 @@ export function FilePreviewModal({
             <Button variant="outline" onClick={onClose} className="flex-1">
               Close
             </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700">Download</Button>
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => handleDownload(file, file?.shared || false)}>
+              Download
+            </Button>
           </div>
         </div>
       </DialogContent>
