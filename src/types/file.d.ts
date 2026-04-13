@@ -11,6 +11,7 @@ interface FileI {
   fk_iv: string;
   mimetype: string;
   folderId?: string | null;
+  shared?: boolean;
   createdAt: Date;
   updatedAt: Date;
   isStarred: boolean;
@@ -30,10 +31,10 @@ interface UploadFileI {
   fk_iv: string;
   mimetype: string;
   originalName: string;
-  size: number
+  size: number;
 }
 
-interface FileDataI{
+interface FileDataI {
   file: { filename: string; mimetype?: string };
   encryptedData: string;
 }
@@ -41,7 +42,7 @@ interface FileDataI{
 //for API responses
 interface GetRecentFilesResponse {
   files: FileI[];
-};
+}
 interface GetStarredFilesResponse {
   files: FileI[];
 }
@@ -55,7 +56,7 @@ interface GetTrashFilesResponse {
 //     parentFolder: string | null;
 //   } | null;
 interface ListeFilesResponse {
-  currentFolder: string;
+  currentFolder: string | null;
   files: FileI[];
   storage: {
     storageUsed: number;
@@ -65,6 +66,9 @@ interface ListeFilesResponse {
 }
 
 interface StatisticResponse {
+  totalSharedFiles: number,
+  sharedWithMe: number,
+  totalSharedFolders?: number,
   totalFiles: number,
   totalFolders: number,
   archivedFiles: number,
@@ -72,8 +76,8 @@ interface StatisticResponse {
   starredFiles: number,
   openedFiles: number,
   storage: {
-    used: number,
-    total: number,
-    remaining: number
-  }
+    used: number;
+    total: number;
+    remaining: number;
+  };
 }

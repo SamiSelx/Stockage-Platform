@@ -1,4 +1,10 @@
-import { useLoginMutation, useLogoutMutation } from "@/app/backend/endpoints/auth";
+import {
+  useEnrollCertificateMutation,
+  useLoginMutation,
+  useLogoutMutation,
+  useStartIdentityChallengeMutation,
+  useVerifyIdentityChallengeMutation,
+} from "@/app/backend/endpoints/auth";
 import { Button } from "@/components/ui/Button";
 import useUser from "@/hooks/useUser";
 import { LoginSchema } from "@/schemas/LoginSchema";
@@ -9,19 +15,38 @@ import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import useTitle from "@/hooks/useTitle";
-import { cacheRMKForSession, decryptPrivateKey, decryptRMK, deriveKEK, generateSessionKey, storeRSAKeys } from "@/utils/crypto";
+import {
+  buildAuthChallengePayload,
+  cacheRMKForSession,
+  decryptPrivateKey,
+  decryptRMK,
+  decryptSigningPrivateKey,
+  deriveKEK,
+  exportPublicKeySpki,
+  generateIdentitySigningKeyPair,
+  generateSessionKey,
+  getIdentityAuthMaterial,
+  protectSigningPrivateKey,
+  signAuthChallengePayload,
+  storeIdentityAuthMaterial,
+  storeRSAKeys,
+} from "@/utils/crypto";
 import { base64ToUint8Array } from "@/utils/convertBase64";
+import uint8ToBase64, { stringToUint8Array } from "@/utils/convertBase64";
 
 export default function Login() {
   useTitle("Stockage Platform - Connexion");
   const [login, { isLoading }] = useLoginMutation();
+  const [enrollCertificate] = useEnrollCertificateMutation();
+  const [startIdentityChallenge] = useStartIdentityChallengeMutation();
+  const [verifyIdentityChallenge] = useVerifyIdentityChallengeMutation();
   const { user, setUser, removeUser } = useUser();
-  const [logout] = useLogoutMutation()
+  const [logout] = useLogoutMutation();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (user && Object.keys(user).length != 0) navigate("/dashboard");
-  }, [user]);
+  }, [user, navigate]);
 
   const formik = useFormik<LoginI>({
     initialValues: {
@@ -30,21 +55,49 @@ export default function Login() {
     },
     validationSchema: LoginSchema,
     onSubmit: async (body) => {
+      console.log("[LOGIN_DEBUG] Submit started", {
+        email: body.email,
+        certAuthEnabled: import.meta.env.VITE_ENABLE_CERT_AUTH === "true",
+      });
+
       login(body)
         .unwrap()
         .then(async (res) => {
-          setUser(res.data);
-          const salt = base64ToUint8Array(res.data?.salt as string);
-          const encryptedRMK = base64ToUint8Array(res.data?.encryptedRMK as string);
-          const iv = base64ToUint8Array(res.data?.rmk_iv as string);
+          console.log("[LOGIN_DEBUG] Login API success", {
+            hasData: !!res.data,
+            message: res.message,
+          });
+
+          if (!res.data) {
+            throw new Error("Missing user payload in login response");
+          }
+
+          const userData = res.data;
+          const certAuthEnabled =
+            import.meta.env.VITE_ENABLE_CERT_AUTH === "true";
+          let localIdentityMaterial = await getIdentityAuthMaterial();
+          console.log("[LOGIN_DEBUG] Identity material presence", {
+            userId: userData._id,
+            email: userData.email,
+            hasToken: !!userData.token,
+            hasBackendIdentityCertificate: !!userData.identityCertificate,
+            hasBackendIdentityCertSignature: !!userData.identityCertSignature,
+            hasLocalIdentityCertificate: !!localIdentityMaterial?.certificate,
+            hasLocalIdentityCertSignature:
+              !!localIdentityMaterial?.caSignatureB64,
+          });
+
+          const salt = base64ToUint8Array(userData.salt);
+          const encryptedRMK = base64ToUint8Array(userData.encryptedRMK);
+          const iv = base64ToUint8Array(userData.rmk_iv);
 
           // derive KEK
           const kek = await deriveKEK(body.password, salt);
 
           // decrypt RMK
           const rmk = await decryptRMK(encryptedRMK, kek, iv);
+          console.log("[LOGIN_DEBUG] RMK decrypted successfully");
 
-          
           // generate session key
           generateSessionKey();
 
@@ -52,29 +105,168 @@ export default function Login() {
           await cacheRMKForSession(rmk);
 
           const encryptedPrivateKey = base64ToUint8Array(
-            res.data?.encryptedPrivateKey as string
+            userData.encryptedPrivateKey,
           );
-          const privateKey_iv = base64ToUint8Array(
-            res.data?.privateKey_iv as string
-          );
-          const publicKey = base64ToUint8Array(res.data?.publicKey as string);
+          const privateKey_iv = base64ToUint8Array(userData.privateKey_iv);
+          const publicKey = base64ToUint8Array(userData.publicKey);
 
           // decrypt private key (for sharing features)
           const privateKey = await decryptPrivateKey(
             encryptedPrivateKey,
             privateKey_iv,
-            kek
+            kek,
           );
-          
-          await storeRSAKeys(publicKey, privateKey);
 
-          toast.success("Connexion réussie",{
+          await storeRSAKeys(publicKey, privateKey);
+          console.log("[LOGIN_DEBUG] RSA keys stored in IndexedDB");
+
+          if (certAuthEnabled) {
+            console.log("[LOGIN_DEBUG] Certificate auth flow enabled");
+            if (!localIdentityMaterial && userData.token) {
+              try {
+                console.log(
+                  "[LOGIN_DEBUG] No local identity material found, attempting re-enrollment",
+                );
+                const signingKeyPair = await generateIdentitySigningKeyPair();
+                const signPublicKeySpki = await exportPublicKeySpki(
+                  signingKeyPair.publicKey,
+                );
+                const {
+                  encryptedPrivateKey: encryptedSigningPrivateKey,
+                  iv: signingPrivateKeyIv,
+                } = await protectSigningPrivateKey(
+                  signingKeyPair.privateKey,
+                  kek,
+                );
+
+                const enrollRes = await enrollCertificate({
+                  userId: userData._id,
+                  email: userData.email,
+                  signPublicKeySpkiB64: uint8ToBase64(signPublicKeySpki),
+                  token: userData.token,
+                }).unwrap();
+
+                if (enrollRes.data) {
+                  await storeIdentityAuthMaterial({
+                    certificate: enrollRes.data.certificate,
+                    caSignatureB64: enrollRes.data.caSignatureB64,
+                    encryptedSigningPrivateKey,
+                    signingPrivateKeyIv,
+                  });
+
+                  localIdentityMaterial = {
+                    certificate: enrollRes.data.certificate,
+                    caSignatureB64: enrollRes.data.caSignatureB64,
+                    encryptedSigningPrivateKey,
+                    signingPrivateKeyIv,
+                  };
+
+                  console.log(
+                    "[LOGIN_DEBUG] Re-enrollment succeeded and local identity material restored",
+                  );
+                }
+              } catch (enrollErr) {
+                console.error(
+                  "[LOGIN_DEBUG] Re-enrollment failed; continuing without local identity material",
+                  enrollErr,
+                );
+              }
+            }
+
+            const identityMaterial = localIdentityMaterial;
+            if (identityMaterial) {
+              console.log("[LOGIN_DEBUG] Identity material found locally");
+              console.log("[CERT_DEBUG] Local certificate fields", {
+                certId: identityMaterial.certificate.certId,
+                serialNumber: identityMaterial.certificate.serialNumber,
+                issuer: identityMaterial.certificate.issuer,
+                subjectUserId: identityMaterial.certificate.subject.userId,
+                subjectEmail: identityMaterial.certificate.subject.email,
+                sigAlg: identityMaterial.certificate.sigAlg,
+                keyUsage: identityMaterial.certificate.keyUsage,
+                notBefore: identityMaterial.certificate.notBefore,
+                notAfter: identityMaterial.certificate.notAfter,
+                hasCaSignature: !!identityMaterial.caSignatureB64,
+              });
+
+              const challengeRes = await startIdentityChallenge({
+                email: userData.email,
+                token: userData.token,
+              }).unwrap();
+              if (!challengeRes.data) {
+                throw new Error("Missing challenge payload");
+              }
+
+              const challengeData = challengeRes.data;
+              console.log("[CERT_DEBUG] Challenge fields", {
+                challengeId: challengeData.challengeId,
+                noncePreview: challengeData.nonceB64?.slice(0, 12),
+                expiresAt: challengeData.expiresAt,
+                serverTime: challengeData.serverTime,
+                sigAlgRequired: challengeData.sigAlgRequired,
+              });
+
+              const signingPrivateKey = await decryptSigningPrivateKey(
+                identityMaterial.encryptedSigningPrivateKey,
+                identityMaterial.signingPrivateKeyIv,
+                kek,
+              );
+
+              const clientTimestamp = new Date().toISOString();
+              const payload = buildAuthChallengePayload({
+                challengeId: challengeData.challengeId,
+                nonceB64: challengeData.nonceB64,
+                userId: userData._id,
+                email: userData.email,
+                clientTimestamp,
+              });
+
+              const signature = await signAuthChallengePayload(
+                payload,
+                signingPrivateKey,
+              );
+              console.log("[CERT_DEBUG] Signed payload metadata", {
+                clientTimestamp,
+                payloadLength: payload.length,
+                signatureBytes: signature.byteLength,
+              });
+
+              await verifyIdentityChallenge({
+                challengeId: challengeData.challengeId,
+                certificate: identityMaterial.certificate,
+                caSignatureB64: identityMaterial.caSignatureB64,
+                clientTimestamp,
+                signedPayloadB64: uint8ToBase64(stringToUint8Array(payload)),
+                signatureB64: uint8ToBase64(signature),
+                token: userData.token,
+              }).unwrap();
+              console.log(
+                "[LOGIN_DEBUG] Identity challenge verified successfully",
+              );
+            } else {
+              console.warn(
+                "[LOGIN_DEBUG] Certificate auth enabled but no local identity material found",
+              );
+            }
+          }
+
+          const normalizedUserData =
+            !userData.identityCertificate && localIdentityMaterial
+              ? {
+                  ...userData,
+                  identityCertificate: localIdentityMaterial.certificate,
+                  identityCertSignature: localIdentityMaterial.caSignatureB64,
+                }
+              : userData;
+          setUser(normalizedUserData);
+
+          toast.success("Connexion réussie", {
             // title: "Connexion réussie",
             description: res.message,
           });
         })
         .catch(async (err) => {
-          console.log(err)
+          console.error("[LOGIN_DEBUG] Login flow failed", err);
           removeUser();
           await logout();
           toast.error("Erreur de connexion", {

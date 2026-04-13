@@ -1,4 +1,7 @@
-import { useRegisterMutation } from "@/app/backend/endpoints/auth";
+import {
+  useEnrollCertificateMutation,
+  useRegisterMutation,
+} from "@/app/backend/endpoints/auth";
 import { Button } from "@/components/ui/Button";
 import useUser from "@/hooks/useUser";
 import { RegisterSchema } from "@/schemas/RegisterSchema";
@@ -11,16 +14,21 @@ import logo from "@/assets/logo.png";
 import useTitle from "@/hooks/useTitle";
 import {
   deriveKEK,
+  exportPublicKeySpki,
   encryptRMK,
+  generateIdentitySigningKeyPair,
   generateRMK,
   generateRSAKeyPair,
+  protectSigningPrivateKey,
   protectPrivateKey,
+  storeIdentityAuthMaterial,
 } from "@/utils/crypto";
 import uint8ToBase64 from "@/utils/convertBase64";
 
 export default function Register() {
   useTitle("Stockage Platform - Inscription");
   const [register, { isLoading }] = useRegisterMutation();
+  const [enrollCertificate] = useEnrollCertificateMutation();
   const { user, setUser, removeUser } = useUser();
   const navigate = useNavigate();
 
@@ -53,7 +61,7 @@ export default function Register() {
 
   useEffect(() => {
     if (user && Object.keys(user).length != 0) navigate("/dashboard");
-  }, [user]);
+  }, [user, navigate]);
 
   const formik = useFormik<RegisterI & { confirmPassword: string }>({
     initialValues: {
@@ -65,6 +73,7 @@ export default function Register() {
     },
     validationSchema: RegisterSchema,
     onSubmit: async (body) => {
+      const certAuthEnabled = import.meta.env.VITE_ENABLE_CERT_AUTH === "true";
       const {
         salt,
         encryptedRMK,
@@ -83,8 +92,80 @@ export default function Register() {
         privateKey_iv: uint8ToBase64(privateKey_iv),
       })
         .unwrap()
-        .then((res) => {
-          setUser(res.data);
+        .then(async (res) => {
+          if (!res.data) {
+            throw new Error("Missing user payload in register response");
+          }
+
+          const userData = res.data;
+          setUser(userData);
+          console.log("[REGISTER_DEBUG] Register success", {
+            userId: userData._id,
+            email: userData.email,
+            hasToken: !!userData.token,
+            certAuthEnabled,
+          });
+
+          if (certAuthEnabled) {
+            try {
+              const signingKeyPair = await generateIdentitySigningKeyPair();
+              const signPublicKeySpki = await exportPublicKeySpki(
+                signingKeyPair.publicKey,
+              );
+              const kek = await deriveKEK(body.password, salt);
+              const {
+                encryptedPrivateKey: encryptedSigningPrivateKey,
+                iv: signingPrivateKeyIv,
+              } = await protectSigningPrivateKey(
+                signingKeyPair.privateKey,
+                kek,
+              );
+
+              const enrollRes = await enrollCertificate({
+                userId: userData._id,
+                email: userData.email,
+                signPublicKeySpkiB64: uint8ToBase64(signPublicKeySpki),
+                token: userData.token,
+              }).unwrap();
+
+              if (!enrollRes.data) {
+                throw new Error("Missing enrollment payload");
+              }
+
+              const enrollData = enrollRes.data;
+
+              console.log("[REGISTER_DEBUG] Certificate enrollment success", {
+                certId: enrollData.certificate?.certId,
+                issuer: enrollData.certificate?.issuer,
+                subjectEmail: enrollData.certificate?.subject?.email,
+                hasCaSignature: !!enrollData.caSignatureB64,
+              });
+
+              await storeIdentityAuthMaterial({
+                certificate: enrollData.certificate,
+                caSignatureB64: enrollData.caSignatureB64,
+                encryptedSigningPrivateKey,
+                signingPrivateKeyIv,
+              });
+            } catch (certErr) {
+              const errorObj = certErr as {
+                status?: number;
+                data?: unknown;
+                message?: string;
+              };
+              console.error("[REGISTER_DEBUG] Certificate enrollment failed", {
+                status: errorObj.status,
+                data: errorObj.data,
+                message: errorObj.message,
+                error: certErr,
+              });
+              toast.error("Inscription partielle", {
+                description:
+                  "Compte cree, mais certificat d'identite indisponible. Reessayez plus tard.",
+              });
+            }
+          }
+
           toast.success("Inscription réussie", {
             description: res.message,
           });

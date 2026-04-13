@@ -37,7 +37,7 @@ export default function Folder() {
 
   const filesData =
     (filesResponse?.data as {
-      currentFolder: string;
+      currentFolder: string | null;
       files: FileI[];
       storage: { storageUsed: number; storageLimit: number };
     }) || [];

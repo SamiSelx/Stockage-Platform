@@ -5,15 +5,25 @@ const API_FILE = "/file";
 export const apiFile = api.injectEndpoints({
   endpoints: (build) => ({
     getFiles: build.query<ResponseI<ListeFilesResponse>, string | undefined>({
-      query: (folderId?:string) => ({
-        url: `${API_FILE}?folderId=${folderId}`,
+      query: (folderId?: string) => ({
+        url: folderId
+          ? `${API_FILE}?folderId=${encodeURIComponent(folderId)}`
+          : `${API_FILE}`,
         method: "GET",
       }),
-      providesTags: ["file"],
+      providesTags: ["file", "auth"],
     }),
     uploadFile: build.mutation<ResponseI<FileI>, FormData>({
       query: (formData) => ({
         url: `${API_FILE}/upload`,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["file"],
+    }),
+    uploadMultipleFiles: build.mutation<ResponseI<FileI[]>, FormData>({
+      query: (formData) => ({
+        url: `${API_FILE}/upload-multiple`,
         method: "POST",
         body: formData,
       }),
@@ -32,21 +42,21 @@ export const apiFile = api.injectEndpoints({
         url: `${API_FILE}/recent`,
         method: "GET",
       }),
-      providesTags: ["file"],
+      providesTags: ["file","auth"],
     }),
     getTrashFiles: build.query<ResponseI<GetTrashFilesResponse>, void>({
       query: () => ({
         url: `${API_FILE}/trash`,
         method: "GET",
       }),
-      providesTags: ["file"],
+      providesTags: ["file","auth"],
     }),
     getStarredFiles: build.query<ResponseI<GetStarredFilesResponse>, void>({
       query: () => ({
         url: `${API_FILE}/starred`,
         method: "GET",
       }),
-      providesTags: ["file"],
+      providesTags: ["file","auth"],
     }),
 
     setStarredFiles: build.mutation<
@@ -82,15 +92,30 @@ export const apiFile = api.injectEndpoints({
       }),
       invalidatesTags: ["file"],
     }),
-     getStatistics: build.query<
-      ResponseI<StatisticResponse>,
-      void
-    >({
+    getStatistics: build.query<ResponseI<StatisticResponse>, void>({
       query: () => ({
         url: `${API_FILE}/statistics`,
         method: "GET",
       }),
-      providesTags: ["file","folder"],
+      providesTags: ["file","folder","auth"],
+    }),
+    shareFile: build.mutation<
+      ResponseI<FileShareI>,
+      { fileId: string; recipientId: string; encryptedFK: string }
+    >({
+      query: ({ fileId, recipientId, encryptedFK }) => ({
+        url: `${API_FILE}/${fileId}/share`,
+        method: "POST",
+        body: { recipientId, encryptedFK },
+      }),
+      invalidatesTags: ["file"],
+    }),
+    getSharedFiles: build.query<ResponseI<FileShareI[]>, void>({
+      query: () => ({
+        url: `${API_FILE}/shared`,
+        method: "GET",
+      }),
+      providesTags: ["file","auth"],
     }),
   }),
 });
@@ -98,6 +123,7 @@ export const apiFile = api.injectEndpoints({
 export const {
   useGetFilesQuery,
   useUploadFileMutation,
+  useUploadMultipleFilesMutation,
   useDownloadFileMutation,
   useGetRecentFilesQuery,
   useGetTrashFilesQuery,
@@ -107,4 +133,6 @@ export const {
   useRestaurerFichierMutation,
   useSupprimerFichierDefinitivementMutation,
   useGetStatisticsQuery,
+  useGetSharedFilesQuery,
+  useShareFileMutation,
 } = apiFile;
