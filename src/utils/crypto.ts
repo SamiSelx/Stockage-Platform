@@ -311,6 +311,43 @@ export async function decryptWithPrivateKey(
   );
 }
 
+export async function decryptFKWithPrivateKey(
+  encryptedFK: Uint8Array,
+  privateKey: CryptoKey
+): Promise<CryptoKey> {
+  const decrypted = await crypto.subtle.decrypt(
+    {
+      name: "RSA-OAEP"
+    },
+    privateKey,
+    encryptedFK
+  );
+
+  return crypto.subtle.importKey(
+    "raw",
+    decrypted,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
+export async function getPrivateKeyFromDB(): Promise<CryptoKey | null> {
+  const raw = await idbGet("privateKey");
+  if (!raw) return null;
+
+  return crypto.subtle.importKey(
+    "pkcs8",
+    raw,
+    {
+      name: "RSA-OAEP",
+      hash: "SHA-256"
+    },
+    false,
+    ["decrypt"]
+  );
+}
+
 export async function protectPrivateKey(
   privateKey: CryptoKey,
   publicKey: CryptoKey,

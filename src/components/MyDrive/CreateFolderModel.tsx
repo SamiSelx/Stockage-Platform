@@ -160,7 +160,7 @@ export function FilePreviewModal({
             <Button variant="outline" onClick={onClose} className="flex-1">
               Close
             </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => handleDownload(file)}>
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => handleDownload(file, file?.shared || false)}>
               Download
             </Button>
           </div>

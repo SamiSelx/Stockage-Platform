@@ -100,7 +100,7 @@ export default function Navbar({
               type="file"
               id="file-upload"
               className="hidden"
-              onChange={(e) => onUpload(e)}
+              onChange={(e) => onUpload(e.target.files ?? undefined)}
               multiple
             />
             <Button asChild variant="outline" size="icon" title="Upload files">
