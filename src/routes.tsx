@@ -15,6 +15,7 @@ import Folders from "./pages/Dashboard/MyDrive/Folders";
 import { MyDriveLayout } from "./pages/Dashboard/MyDrive/layout/MyDriveLayout";
 import ProtectRoute from "./components/ProtectRoute";
 import ChangePW from "./pages/changePw";
+import ForgotPassword from "./pages/ForgetPassword";
 
 const router = createBrowserRouter([
   {
@@ -65,6 +66,10 @@ const router = createBrowserRouter([
   {
     path: "/change-password",
     element: <ChangePW />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
   }
 ]);
 

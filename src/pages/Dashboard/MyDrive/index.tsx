@@ -9,14 +9,19 @@ import { FolderCard } from "@/components/MyDrive/FolderCard";
 import { useNavigate } from "react-router";
 import { useGetFilesQuery, useGetSharedFilesQuery } from "@/app/backend/endpoints/file";
 import { useGetFoldersQuery } from "@/app/backend/endpoints/folder";
-import { Loader2 } from "lucide-react";
+import { Download, Loader2, X } from "lucide-react";
 import useFolder from "@/hooks/useFolder";
 import useFile from "@/hooks/useFile";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/Button";
+import { toast } from "sonner";
 
 export default function Drive() {
   const navigate = useNavigate()
   const {viewMode, searchQuery, setShowCreateFolder} = useFolder()
-  const { handleUpload } = useFile();
+  const { handleUpload, handleBulkDownload } = useFile();
+
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [selectedFile, setSelectedFile] = useState<FileI | null>(null);
@@ -70,10 +75,38 @@ const files = [...ownedFiles, ...sharedFiles];
     setSelectedFiles(newSelected);
   };
 
+   const handleSelectAll = () => {
+    setSelectedFiles(new Set(filteredItems.files?.map((f) => f.id)));
+  };
+
+   const handleDeselectAll = () => {
+    setSelectedFiles(new Set());
+  };
+
+  async function handleDownloadSelected() {
+     if (selectedFiles.size === 0) return;
+      setIsDownloading(true);
+
+     try{
+
+      const filesToDownload = filteredItems.files?.filter((f) =>
+        selectedFiles.has(f.id)
+      ) || [];
+      
+      await handleBulkDownload(filesToDownload);
+
+     }catch(err: unknown) {
+      console.log("error ",err)
+      toast.error("Failed to download selected files");
+     }
+     setIsDownloading(false);
+  }
+  
   const handlePreviewFile = (file: FileI) => {
     setSelectedFile(file);
     setShowFilePreview(true);
   };
+  
 
   const handleOpenFolder = (folder: FolderI) => {
     console.log("Opening folder:", folder);
@@ -112,6 +145,39 @@ const files = [...ownedFiles, ...sharedFiles];
           onNavigate={handleBreadcrumbNavigate}
         /> */}
         <main className="flex-1 ">
+          {/* Selection Toolbar */}
+        {selectedFiles.size > 0 && (
+          <Card className="mb-6 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium">
+                  {selectedFiles.size} file{selectedFiles.size !== 1 ? 's' : ''} selected
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDeselectAll}
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Clear
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={()=> handleSelectAll()}>
+                  Select All
+                </Button>
+                <Button
+                  onClick={handleDownloadSelected}
+                  disabled={isDownloading}
+                  className="gap-2 bg-blue-600 hover:bg-blue-700"
+                >
+                  
+                  {isDownloading ? <><Loader2 className="animate-spin w-4 h-4"/> Downloading...</> : <><Download className="w-4 h-4" /> Download Selected</>}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
           {/* Empty State */}
           {isEmpty ? (
             <EmptyState onCreateFolder={() => setShowCreateFolder(true)} />

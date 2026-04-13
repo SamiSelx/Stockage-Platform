@@ -117,6 +117,14 @@ export const apiFile = api.injectEndpoints({
       }),
       providesTags: ["file","auth"],
     }),
+    renameFile: build.mutation<ResponseI<FileI>, { fileId: string; newName: string }>({
+      query: ({ fileId, newName }) => ({
+        url: `${API_FILE}/${fileId}/rename`,
+        method: "PATCH",
+        body: { name:newName },
+      }),
+      invalidatesTags: ["file"],
+    }),
   }),
 });
 
@@ -135,4 +143,5 @@ export const {
   useGetStatisticsQuery,
   useGetSharedFilesQuery,
   useShareFileMutation,
+  useRenameFileMutation,
 } = apiFile;

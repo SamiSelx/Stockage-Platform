@@ -13,6 +13,10 @@ import { formatDate } from '@/utils/formatDate';
 import useUser from '@/hooks/useUser';
 import { useDeleteFolderMutation } from '@/app/backend/endpoints/folder';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Button } from '../ui/Button';
+import useFolder from '@/hooks/useFolder';
 
 interface FolderCardProps {
   folder: FolderI;
@@ -32,6 +36,21 @@ export function FolderCard({
   const [isHovered, setIsHovered] = useState(false);
   const {user} = useUser()
   const [deleteFolder] = useDeleteFolderMutation()
+  const {handleRenameFolder} = useFolder()
+
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  
+  const handleRenameClick = (folder: FolderI) => {
+    setRenameValue(folder.name);
+    setRenameDialogOpen(true);
+  };
+  
+  const handleRenameConfirm = async () => {
+    if (!renameValue.trim()) return;
+    await handleRenameFolder(folder.id, renameValue.trim());
+    setRenameDialogOpen(false);
+  };
   
   async function handleDeleteFolder() {
     if (confirm(`Êtes-vous sûr de vouloir supprimer le dossier "${folder.name}" ? Cette action ne peut pas être annulée.`)) {
@@ -50,7 +69,8 @@ export function FolderCard({
 
   if (viewMode === 'list') {
     return (
-      <ContextMenu>
+      <>
+        <ContextMenu>
         <ContextMenuTrigger asChild>
           <div
             className="flex items-center gap-4 border-b border-border px-4 py-3 hover:bg-accent transition-colors cursor-pointer group"
@@ -83,7 +103,7 @@ export function FolderCard({
             <FolderOpen size={16} className="mr-2" />
             Open
           </ContextMenuItem>
-          <ContextMenuItem>
+          <ContextMenuItem onClick={() => handleRenameClick(folder)}>
             <Edit size={16} className="mr-2" />
             Rename
           </ContextMenuItem>
@@ -93,12 +113,36 @@ export function FolderCard({
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
+      {/* Rename Dialog */}
+          <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rename folder</DialogTitle>
+        </DialogHeader>
+        <Input
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleRenameConfirm()}
+          autoFocus
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleRenameConfirm}>
+            Rename
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+      </>
     );
   }
 
   // Grid view
   return (
-    <ContextMenu>
+    <>
+      <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
           className={cn(
@@ -154,7 +198,7 @@ export function FolderCard({
           <FolderOpen size={16} className="mr-2" />
           Open
         </ContextMenuItem>
-        <ContextMenuItem>
+        <ContextMenuItem onClick={() => handleRenameClick(folder)}>
           <Edit size={16} className="mr-2" />
           Rename
         </ContextMenuItem>
@@ -164,5 +208,28 @@ export function FolderCard({
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
+    {/* Rename Dialog */}
+          <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rename folder</DialogTitle>
+        </DialogHeader>
+        <Input
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleRenameConfirm()}
+          autoFocus
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleRenameConfirm}>
+            Rename
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

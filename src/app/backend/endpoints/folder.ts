@@ -64,7 +64,16 @@ export const apiFolder = api.injectEndpoints({
         method: "GET",
         }),
         providesTags: ["folder"],
-    })
+    }),
+    renameFolder: build.mutation<ResponseI<FolderI>, { folderId: string; newName: string }>({
+      query: ({ folderId, newName }) => ({
+        url: `${API_FOLDER}/${folderId}/rename`,
+        method: "PATCH",
+        body: { name:newName },
+      }),
+      invalidatesTags: ["folder"],
+    }),
+
   }),
 });
 
@@ -77,4 +86,5 @@ export const {
   useRestaurerDossierMutation,
   useSupprimerDossierDefinitivementMutation,
   useGetTrashFoldersQuery,
+  useRenameFolderMutation
 } = apiFolder;

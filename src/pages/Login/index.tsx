@@ -96,7 +96,7 @@ export default function Login() {
 
           // decrypt RMK
           const rmk = await decryptRMK(encryptedRMK, kek, iv);
-          console.log("[LOGIN_DEBUG] RMK decrypted successfully");
+          console.log("[LOGIN_DEBUG] RMK decrypted successfully", rmk);
 
           // generate session key
           generateSessionKey();
@@ -359,6 +359,14 @@ export default function Login() {
             >
               S'inscrire
             </button>
+            <div className="mt-3">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition"
+              >
+                Mot de passe oublié ?
+              </Link>
+            </div>
           </div>
         </div>
       </div>

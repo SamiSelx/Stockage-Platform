@@ -1,4 +1,7 @@
+import JSZip from "jszip";
 import {
+  useRenameFileMutation,
+  useSupprimerFichierMutation,
   useUploadFileMutation,
   useUploadMultipleFilesMutation,
 } from "@/app/backend/endpoints/file";
@@ -22,9 +25,11 @@ import type { FolderNode } from "@/utils/builderFolderTree";
 import { useCreateFolderMutation } from "@/app/backend/endpoints/folder";
 
 export default function useFile() {
+  const [renameFile] = useRenameFileMutation();
   const [createFolder] = useCreateFolderMutation();
   const [uploadFile] = useUploadFileMutation();
   const [uploadMultipleFiles] = useUploadMultipleFilesMutation();
+  const [supprimerFichier] = useSupprimerFichierMutation();
   const { user } = useUser();
   const params = useParams();
   const location = useLocation();
@@ -33,6 +38,19 @@ export default function useFile() {
   useEffect(() => {
     setFolderId(params.folderId);
   }, [folderId, location.pathname]);
+
+  const handleDeleteFile = async (_id: string) => {
+      try {
+        await supprimerFichier(_id).unwrap();
+        // setFiles((prev) => prev.filter((f) => f.id !== _id));
+        toast.success(
+          "File moved to Corbeille. This is not a permanent delete. Delete permanently from Corbeille.",
+        );
+      } catch (err) {
+        toast.error("Failed to move file to Corbeille.");
+        console.error("Delete file error:", err);
+      }
+    };
 
   const handleUpload = async (
     files?: File | FileList | File[],
@@ -194,9 +212,106 @@ export default function useFile() {
     }
   }
 
+
+async function handleBulkDownload(files: FileI[]) {
+  if (!files.length) return;
+
+  try {
+    toast.info("Préparation du téléchargement...");
+
+    const res = await fetch(apiUrl + "/file/download/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ fileIds: files.map((f) => f.id) }),
+    });
+
+    // 1. Unzip the response
+    const zipArrayBuffer = await res.arrayBuffer();
+    const zip = await JSZip.loadAsync(zipArrayBuffer);
+    const outputZip = new JSZip();
+
+    const rmk = await restoreRMKFromSession();
+    if (!rmk) throw new Error("Please log in again.");
+    const privateKey = await getPrivateKeyFromDB();
+    if (!privateKey) throw new Error("Private key not found");
+
+    // 2. Decrypt each entry and add to a new zip
+    await Promise.all(
+      files.map(async (file) => {
+        const entry = zip.file(file.filename);
+        if (!entry) return;
+
+        const encryptedBytes = await entry.async("uint8array");        
+
+        let fileKey: CryptoKey;
+        if (file?.shared) {
+          if (!privateKey) throw new Error("Private key not found");
+          fileKey = await decryptFKWithPrivateKey(
+            base64ToUint8Array(file.encryptedFK),
+            privateKey
+          );
+        } else {
+          if (!rmk) throw new Error("Please log in again.");
+          fileKey = await unwrapFileKey(
+            base64ToUint8Array(file.encryptedFK),
+            rmk,
+            base64ToUint8Array(file.fk_iv)
+          );
+        }
+        
+        const decryptedBlob = await decryptFileWithFK(
+          encryptedBytes,
+          fileKey,
+          base64ToUint8Array(file.file_iv)
+        );
+
+        outputZip.file(`${file.filename}.${file.mimetype.split("/")[1]}`, decryptedBlob);
+      })
+    );
+
+    // 3. Download the decrypted zip
+    const finalZip = await outputZip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(finalZip);
+    const a = document.createElement("a");
+    const zipName = files.length === 1
+    ? `${files[0].filename}.zip`
+    : `fichiers_${new Date().toISOString().slice(0, 10)}.zip`;
+
+    a.href = url;
+    a.download = zipName;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    toast.success(`${files.length} fichiers téléchargés avec succès`);
+  } catch (err) {
+    toast.error(
+      (err as { data?: { message?: string } }).data?.message ||
+        "Impossible de télécharger les fichiers"
+    );
+  }
+}
+
+async function handleRenameFile(fileId: string, newName: string) {
+  renameFile({ fileId, newName })
+    .unwrap()
+    .then(() => {
+      toast.success("Fichier renommé avec succès");
+    })
+    .catch(err => {
+      toast.error(
+        (err as { data?: { message?: string } }).data?.message ||
+          "Impossible de renommer le fichier"
+      );
+    });
+}
+
   return {
     handleUpload,
     handleDownload,
     handleFolderUpload,
+    handleBulkDownload,
+    handleRenameFile,
+    handleDeleteFile
   };
 }
