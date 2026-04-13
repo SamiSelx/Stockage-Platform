@@ -15,6 +15,9 @@ import useUser from '@/hooks/useUser';
 import useFile from '@/hooks/useFile';
 import { ShareFileDialog } from '../ShareFile/share-file-dialog';
 import { useState } from 'react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Button } from '../ui/Button';
 
 interface FileCardProps {
   file: FileI;
@@ -39,7 +42,21 @@ export function FileCard({
     setShareDialogOpen(true)
   }
   const { user } = useUser()
-  const {handleDownload} = useFile()
+  const {handleDownload, handleRenameFile} = useFile()
+
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+const [renameValue, setRenameValue] = useState('');
+
+const handleRenameClick = (file: FileI) => {
+  setRenameValue(file.filename);
+  setRenameDialogOpen(true);
+};
+
+const handleRenameConfirm = async () => {
+  if (!renameValue.trim()) return;
+  await handleRenameFile(file.id, renameValue.trim());
+  setRenameDialogOpen(false);
+};
 
   if (viewMode === 'list') {
     return (
@@ -84,7 +101,7 @@ export function FileCard({
             <Download size={16} className="mr-2" />
             Download
           </ContextMenuItem>
-          <ContextMenuItem>
+          <ContextMenuItem onClick={() => handleRenameClick(file)}>
             <Edit size={16} className="mr-2" />
             Rename
           </ContextMenuItem>
@@ -103,6 +120,28 @@ export function FileCard({
           fk_iv={selectedFile.fk_iv}
         />
       )}
+      {/* Rename Dialog */}
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Rename file</DialogTitle>
+    </DialogHeader>
+    <Input
+      value={renameValue}
+      onChange={(e) => setRenameValue(e.target.value)}
+      onKeyDown={(e) => e.key === 'Enter' && handleRenameConfirm()}
+      autoFocus
+    />
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+        Cancel
+      </Button>
+      <Button onClick={handleRenameConfirm}>
+        Rename
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
       </ContextMenu>
       
     );
@@ -174,7 +213,7 @@ export function FileCard({
           <Download size={16} className="mr-2" />
           Download
         </ContextMenuItem>
-        <ContextMenuItem>
+        <ContextMenuItem onClick={() => handleRenameClick(file)}>
           <Edit size={16} className="mr-2" />
           Rename
         </ContextMenuItem>
@@ -195,6 +234,28 @@ export function FileCard({
           fk_iv={selectedFile.fk_iv}
         />
       )}
+      {/* Rename Dialog */}
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Rename file</DialogTitle>
+    </DialogHeader>
+    <Input
+      value={renameValue}
+      onChange={(e) => setRenameValue(e.target.value)}
+      onKeyDown={(e) => e.key === 'Enter' && handleRenameConfirm()}
+      autoFocus
+    />
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+        Cancel
+      </Button>
+      <Button onClick={handleRenameConfirm}>
+        Rename
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
     </>
   );
 }

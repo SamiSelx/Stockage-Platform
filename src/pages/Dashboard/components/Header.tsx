@@ -13,6 +13,7 @@ import { useLogoutMutation } from "@/app/backend/endpoints/auth";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router";
 import useUser from "@/hooks/useUser";
+import { useState } from "react";
 
 export default function Navbar({
   viewMode,
@@ -24,6 +25,7 @@ export default function Navbar({
   const navigate =  useNavigate()
   const {removeUser} = useUser()
   const [logout] = useLogoutMutation()
+  const [fileInputKey, setFileInputKey] = useState(0);
 
 
   async function handleLogout(){
@@ -101,14 +103,18 @@ export default function Navbar({
           {/* Upload Button */}
           <div>
             <Input
+              key={fileInputKey}
               type="file"
-              id="file-upload"
+              id={`file-upload-${fileInputKey}`}
               className="hidden"
-              onChange={(e) => onUpload(e.target.files ?? undefined)}
+              onChange={(e) => {
+                onUpload(e.target.files ?? undefined)
+                setFileInputKey(prev => prev + 1);
+              }}
               multiple
             />
             <Button asChild variant="outline" size="icon" title="Upload files">
-              <label htmlFor="file-upload" className="cursor-pointer">
+              <label htmlFor={`file-upload-${fileInputKey}`} className="cursor-pointer">
                 <UploadCloud size={18} />
               </label>
             </Button>

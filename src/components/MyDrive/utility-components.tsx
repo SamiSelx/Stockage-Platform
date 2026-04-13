@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import useFile from "@/hooks/useFile";
-import { useState } from "react";
+import {  useState } from "react";
 import { Spinner } from "../ui/spinner";
 import {
   buildFolderTree,
@@ -62,6 +62,8 @@ interface UploadZoneProps {
 }
 
 export function UploadZone({ onUpload }: UploadZoneProps) {
+const [fileInputKey, setFileInputKey] = useState(0);
+const [folderInputKey, setFolderInputKey] = useState(0);
   const { handleUpload, handleFolderUpload } = useFile();
   onUpload();
 
@@ -73,9 +75,9 @@ export function UploadZone({ onUpload }: UploadZoneProps) {
     setIsUploading(true);
 
     try {
-      const start = Date.now();
+      const start = Date.now();      
 
-      if (handleUpload) {
+      if (handleUpload) {        
         await handleUpload(files);
       } else {
         console.log("Uploading file(s):", files);
@@ -137,6 +139,8 @@ export function UploadZone({ onUpload }: UploadZoneProps) {
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     await handleUploadFile(e.target.files ?? undefined);
+    setFileInputKey(prev => prev + 1); 
+    // if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleFolderSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,7 +149,9 @@ export function UploadZone({ onUpload }: UploadZoneProps) {
 
     // Build a tree from the flat list webkitRelativePath gives us
     const folderTree = buildFolderTree(files);
-    await handleFolderUpload(folderTree); // new prop, see below
+    await handleFolderUpload(folderTree);
+    setFolderInputKey(prev => prev + 1); 
+    //  if (folderInputRef.current) folderInputRef.current.value = "";
   };
 
   return (
@@ -173,22 +179,25 @@ export function UploadZone({ onUpload }: UploadZoneProps) {
             ci-dessous
           </p>
           <Input
+            // ref={fileInputRef}
+            key={fileInputKey}
             type="file"
-            id="file-upload"
+            id={`file-upload-${fileInputKey}`}
             className="hidden"
             onChange={handleFileSelect}
             disabled={isUploading}
           />
           <Label
-            htmlFor="file-upload"
+            htmlFor={`file-upload-${fileInputKey}`}
             className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Upload size={18} />
             Select files
           </Label>
           <Input
+            // ref={folderInputRef}
             type="file"
-            id="folder-upload"
+            id={`folder-upload-${folderInputKey}`}
             className="hidden"
             onChange={handleFolderSelect}
             // @ts-expect-error – non-standard but widely supported
@@ -196,7 +205,7 @@ export function UploadZone({ onUpload }: UploadZoneProps) {
             multiple
           />
           <Label
-            htmlFor="folder-upload"
+            htmlFor={`folder-upload-${folderInputKey}`}
             className="ml-4 cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FolderUp size={18} />
