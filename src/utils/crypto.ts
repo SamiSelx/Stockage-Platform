@@ -878,3 +878,122 @@ export async function getIdentityAuthMaterial(): Promise<{
     signingPrivateKeyIv,
   };
 }
+
+
+// Derive AES key from recovery key string
+async function deriveKeyFromRecoveryKey(recoveryKey: string): Promise<CryptoKey> {
+  const baseKey = await webCrypto.subtle.importKey(
+    "raw",
+    enc.encode(recoveryKey),
+    { name: "PBKDF2" },
+    false,
+    ["deriveKey"]
+  );
+  return webCrypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: enc.encode("recovery-key-salt"),
+      iterations: 100000,
+      hash: "SHA-256",
+    },
+    baseKey,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
+export function generateRecoveryKey(): string {
+  const bytes = webCrypto.getRandomValues(new Uint8Array(20));
+  const hex = Array.from(bytes)
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase();
+  return hex.match(/.{4}/g)!.join("-"); // XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
+}
+
+export async function encryptRMKWithRecoveryKey(
+  rmk: CryptoKey,
+  recoveryKey: string
+): Promise<{ encryptedRMK_recovery: Uint8Array; rmk_recovery_iv: Uint8Array }> {
+  const key = await deriveKeyFromRecoveryKey(recoveryKey);
+  const iv = webCrypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  const rawRMK = await webCrypto.subtle.exportKey("raw", rmk);
+
+  const encrypted = await webCrypto.subtle.encrypt(
+    { name: "AES-GCM", iv, tagLength: 128 },
+    key,
+    rawRMK
+  );
+
+  return {
+    encryptedRMK_recovery: new Uint8Array(encrypted),
+    rmk_recovery_iv: iv,
+  };
+}
+
+export async function decryptRMKWithRecoveryKey(
+  encryptedRMK_recovery: Uint8Array,
+  rmk_recovery_iv: Uint8Array,
+  recoveryKey: string
+): Promise<CryptoKey> {
+  const key = await deriveKeyFromRecoveryKey(recoveryKey);
+
+  const decrypted = await webCrypto.subtle.decrypt(
+    { name: "AES-GCM", iv: rmk_recovery_iv, tagLength: 128 },
+    key,
+    encryptedRMK_recovery
+  );
+
+  return webCrypto.subtle.importKey(
+    "raw",
+    decrypted,
+    { name: "AES-GCM" },
+    true,
+    ["encrypt", "decrypt"]
+  );
+}
+
+// Encrypt private key with recovery-derived key (mirrors protectPrivateKey but uses recovery key)
+export async function protectPrivateKeyWithRecoveryKey(
+  privateKey: CryptoKey,
+  recoveryKey: string,
+): Promise<{ encryptedPrivateKey: Uint8Array; privateKey_iv: Uint8Array }> {
+  const key = await deriveKeyFromRecoveryKey(recoveryKey);
+  const rawPrivateKey = await webCrypto.subtle.exportKey("pkcs8", privateKey);
+  const iv = webCrypto.getRandomValues(new Uint8Array(IV_LENGTH));
+
+  const encrypted = await webCrypto.subtle.encrypt(
+    { name: "AES-GCM", iv, tagLength: 128 },
+    key,
+    rawPrivateKey
+  );
+
+  return {
+    encryptedPrivateKey: new Uint8Array(encrypted),
+    privateKey_iv: iv,
+  };
+}
+
+// Decrypt private key with recovery-derived key
+export async function decryptPrivateKeyWithRecoveryKey(
+  encryptedPrivateKey: Uint8Array,
+  privateKey_iv: Uint8Array,
+  recoveryKey: string,
+): Promise<CryptoKey> {
+  const key = await deriveKeyFromRecoveryKey(recoveryKey);
+
+  const decrypted = await webCrypto.subtle.decrypt(
+    { name: "AES-GCM", iv: privateKey_iv, tagLength: 128 },
+    key,
+    encryptedPrivateKey
+  );
+
+  return webCrypto.subtle.importKey(
+    "pkcs8",
+    decrypted,
+    { name: "RSA-OAEP", hash: "SHA-256" },
+    true,
+    ["decrypt"]
+  );
+}

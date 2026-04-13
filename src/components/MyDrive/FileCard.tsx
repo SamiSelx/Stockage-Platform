@@ -42,7 +42,7 @@ export function FileCard({
     setShareDialogOpen(true)
   }
   const { user } = useUser()
-  const {handleDownload, handleRenameFile} = useFile()
+  const {handleDownload, handleRenameFile, handleDeleteFile} = useFile()
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
 const [renameValue, setRenameValue] = useState('');
@@ -105,7 +105,7 @@ const handleRenameConfirm = async () => {
             <Edit size={16} className="mr-2" />
             Rename
           </ContextMenuItem>
-          <ContextMenuItem className="text-red-600">
+          <ContextMenuItem className="text-red-600" onClick={()=> handleDeleteFile(file.id)}>
             <Trash2 size={16} className="mr-2" />
             Delete
           </ContextMenuItem>
@@ -217,7 +217,7 @@ const handleRenameConfirm = async () => {
           <Edit size={16} className="mr-2" />
           Rename
         </ContextMenuItem>
-        <ContextMenuItem className="text-red-600">
+        <ContextMenuItem className="text-red-600" onClick={() => handleDeleteFile(file.id)}>
           <Trash2 size={16} className="mr-2" />
           Delete
         </ContextMenuItem>

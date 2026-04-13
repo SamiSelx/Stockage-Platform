@@ -7,7 +7,7 @@ import useUser from "@/hooks/useUser";
 import { RegisterSchema } from "@/schemas/RegisterSchema";
 import { Form, FormikProvider, useFormik } from "formik";
 import { Loader2, User } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
@@ -22,6 +22,9 @@ import {
   protectSigningPrivateKey,
   protectPrivateKey,
   storeIdentityAuthMaterial,
+  generateRecoveryKey,
+  encryptRMKWithRecoveryKey,
+  protectPrivateKeyWithRecoveryKey,
 } from "@/utils/crypto";
 import uint8ToBase64 from "@/utils/convertBase64";
 
@@ -31,6 +34,8 @@ export default function Register() {
   const [enrollCertificate] = useEnrollCertificateMutation();
   const { user, setUser, removeUser } = useUser();
   const navigate = useNavigate();
+  const [recoveryKey, setRecoveryKey] = useState("");
+  const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
 
   const initUser = async (password: string) => {
     console.log("=== INIT USER ===");
@@ -38,6 +43,12 @@ export default function Register() {
     const kek = await deriveKEK(password, salt);
     const rmk = await generateRMK();
     const { encryptedRMK, iv: rmk_iv } = await encryptRMK(rmk, kek);
+
+    // Recovery key
+  const recoveryKey = generateRecoveryKey();
+  const { encryptedRMK_recovery, rmk_recovery_iv } = await encryptRMKWithRecoveryKey(rmk, recoveryKey);
+
+
     // generate RSA keypair (for sharing)
     const { publicKey, privateKey } = await generateRSAKeyPair();
 
@@ -47,11 +58,18 @@ export default function Register() {
       privateKey_iv,
     } = await protectPrivateKey(privateKey, publicKey, kek);
 
+    const { encryptedPrivateKey: encryptedPrivateKey_recovery, privateKey_iv: privateKey_recovery_iv } =
+    await protectPrivateKeyWithRecoveryKey(privateKey, recoveryKey);
+
     return {
       salt,
       encryptedRMK,
       rmk_iv,
-
+      recoveryKey,             // shown once to user
+      encryptedRMK_recovery,
+      rmk_recovery_iv,
+      encryptedPrivateKey_recovery,        
+    privateKey_recovery_iv,  
       publicKey: new Uint8Array(exportedPublicKey),
 
       encryptedPrivateKey: new Uint8Array(encryptedPrivateKey),
@@ -60,8 +78,8 @@ export default function Register() {
   };
 
   useEffect(() => {
-    if (user && Object.keys(user).length != 0) navigate("/dashboard");
-  }, [user, navigate]);
+    if (user && Object.keys(user).length != 0 && showRecoveryDialog == false) navigate("/dashboard");
+  }, [user, navigate, showRecoveryDialog]);
 
   const formik = useFormik<RegisterI & { confirmPassword: string }>({
     initialValues: {
@@ -78,6 +96,11 @@ export default function Register() {
         salt,
         encryptedRMK,
         rmk_iv,
+        recoveryKey: generatedKey,
+        encryptedRMK_recovery,
+        rmk_recovery_iv,
+        encryptedPrivateKey_recovery,
+        privateKey_recovery_iv,
         publicKey,
         encryptedPrivateKey,
         privateKey_iv,
@@ -87,15 +110,22 @@ export default function Register() {
         salt: uint8ToBase64(salt),
         encryptedRMK: uint8ToBase64(encryptedRMK),
         rmk_iv: uint8ToBase64(rmk_iv),
+        encryptedRMK_recovery: uint8ToBase64(encryptedRMK_recovery),
+        rmk_recovery_iv: uint8ToBase64(rmk_recovery_iv),    
+        encryptedPrivateKey_recovery: uint8ToBase64(encryptedPrivateKey_recovery),
+        privateKey_recovery_iv: uint8ToBase64(privateKey_recovery_iv),          
         publicKey: uint8ToBase64(publicKey),
         encryptedPrivateKey: uint8ToBase64(encryptedPrivateKey),
         privateKey_iv: uint8ToBase64(privateKey_iv),
       })
         .unwrap()
         .then(async (res) => {
+          
           if (!res.data) {
             throw new Error("Missing user payload in register response");
           }
+          setRecoveryKey(generatedKey);
+          setShowRecoveryDialog(true);
 
           const userData = res.data;
           setUser(userData);
@@ -165,7 +195,7 @@ export default function Register() {
               });
             }
           }
-
+          
           toast.success("Inscription réussie", {
             description: res.message,
           });
@@ -327,6 +357,35 @@ export default function Register() {
           </div>
         </div>
       </div>
+      {showRecoveryDialog && (
+  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-8 max-w-md w-full">
+      <h2 className="text-xl font-bold mb-2">Clé de récupération</h2>
+      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+        Sauvegardez cette clé en lieu sûr. Elle vous permettra de réinitialiser
+        votre mot de passe. <strong>Elle ne sera plus affichée.</strong>
+      </p>
+      <div className="bg-slate-100 dark:bg-slate-700 rounded-lg p-4 font-mono text-center text-sm tracking-widest select-all mb-4 break-all">
+        {recoveryKey}
+      </div>
+      <button
+        onClick={() => navigator.clipboard.writeText(recoveryKey)}
+        className="w-full mb-2 px-4 py-2 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+      >
+        📋 Copier
+      </button>
+      <button
+        onClick={() => {
+          setShowRecoveryDialog(false);
+          navigate("/dashboard");
+        }}
+        className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition"
+      >
+        J'ai sauvegardé ma clé →
+      </button>
+    </div>
+  </div>
+)}
     </div>
   );
 }

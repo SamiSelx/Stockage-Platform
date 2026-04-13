@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 import {
   useRenameFileMutation,
+  useSupprimerFichierMutation,
   useUploadFileMutation,
   useUploadMultipleFilesMutation,
 } from "@/app/backend/endpoints/file";
@@ -28,6 +29,7 @@ export default function useFile() {
   const [createFolder] = useCreateFolderMutation();
   const [uploadFile] = useUploadFileMutation();
   const [uploadMultipleFiles] = useUploadMultipleFilesMutation();
+  const [supprimerFichier] = useSupprimerFichierMutation();
   const { user } = useUser();
   const params = useParams();
   const location = useLocation();
@@ -36,6 +38,19 @@ export default function useFile() {
   useEffect(() => {
     setFolderId(params.folderId);
   }, [folderId, location.pathname]);
+
+  const handleDeleteFile = async (_id: string) => {
+      try {
+        await supprimerFichier(_id).unwrap();
+        // setFiles((prev) => prev.filter((f) => f.id !== _id));
+        toast.success(
+          "File moved to Corbeille. This is not a permanent delete. Delete permanently from Corbeille.",
+        );
+      } catch (err) {
+        toast.error("Failed to move file to Corbeille.");
+        console.error("Delete file error:", err);
+      }
+    };
 
   const handleUpload = async (
     files?: File | FileList | File[],
@@ -296,6 +311,7 @@ async function handleRenameFile(fileId: string, newName: string) {
     handleDownload,
     handleFolderUpload,
     handleBulkDownload,
-    handleRenameFile
+    handleRenameFile,
+    handleDeleteFile
   };
 }
