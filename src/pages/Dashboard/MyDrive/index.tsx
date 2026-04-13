@@ -7,32 +7,29 @@ import {
 } from "@/components/MyDrive/utility-components";
 import { FolderCard } from "@/components/MyDrive/FolderCard";
 import { useNavigate } from "react-router";
-import { useGetFilesQuery } from "@/app/backend/endpoints/file";
+import { useGetFilesQuery, useGetSharedFilesQuery } from "@/app/backend/endpoints/file";
 import { useGetFoldersQuery } from "@/app/backend/endpoints/folder";
 import { Loader2 } from "lucide-react";
 import useFolder from "@/hooks/useFolder";
+import useFile from "@/hooks/useFile";
 
 export default function Drive() {
-  const navigate = useNavigate();
-  const { viewMode, searchQuery, setShowCreateFolder } = useFolder();
+  const navigate = useNavigate()
+  const {viewMode, searchQuery, setShowCreateFolder} = useFolder()
+  const { handleUpload } = useFile();
+
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [selectedFile, setSelectedFile] = useState<FileI | null>(null);
   const [showFilePreview, setShowFilePreview] = useState(false);
 
   // Api Get Folders & Files
-  const { data: filesResponse, isLoading: isFilesLoading } =
-    useGetFilesQuery(undefined);
-  const { data: foldersResponse, isLoading: isFoldersLoading } =
-    useGetFoldersQuery(undefined);
-  const filesData =
-    (filesResponse?.data as {
-      currentFolder: string | null;
-      files: FileI[];
-      storage: { storageUsed: number; storageLimit: number };
-    }) || [];
-  const foldersData =
-    (foldersResponse?.data as { currentParent: string; folders: FolderI[] }) ??
-    [];
+  const {data: sharedFilesData} = useGetSharedFilesQuery()
+  const {data: filesResponse, isLoading: isFilesLoading} = useGetFilesQuery(undefined)
+  const {data: foldersResponse, isLoading: isFoldersLoading} = useGetFoldersQuery(undefined)
+  const filesData = filesResponse?.data as {currentFolder: string; files: FileI[]; storage: {storageUsed: number; storageLimit: number}} || []
+  const foldersData = foldersResponse?.data as { currentParent: string; folders: FolderI[] } ?? [];
+  
+
 
   // Filter files and folders based on search
   const filteredItems = useMemo(() => {
@@ -40,11 +37,25 @@ export default function Drive() {
     const folders = foldersData.folders?.filter((f) =>
       f.name.toLowerCase().includes(query),
     );
-    const files = filesData.files?.filter((f) =>
-      f.filename.toLowerCase().includes(query),
-    );
+    const ownedFiles =
+  filesData.files?.filter((f) =>
+    f.filename.toLowerCase().includes(query)
+  ) || [];
+
+const sharedFiles =
+  sharedFilesData?.data
+    ?.filter((sf) =>
+      sf.fileId.filename.toLowerCase().includes(query)
+    )
+    .map((sf) => ({
+      ...sf.fileId,
+      shared: true,
+      encryptedFK: sf.encryptedFK,
+    })) || [];
+
+const files = [...ownedFiles, ...sharedFiles];
     return { folders, files };
-  }, [searchQuery, foldersData.folders, filesData.files]);
+  }, [searchQuery,foldersData.folders,filesData.files, sharedFilesData?.data]);
 
   const handleSelectFile = (fileId: string) => {
     // selecting files or folders to perform actions like move or delete
@@ -109,7 +120,7 @@ export default function Drive() {
               {/* Upload Zone */}
               <div className="p-4 border-b border-border bg-accent/30">
                 <UploadZone
-                  onUpload={(files) => console.log(" Files to upload:", files)}
+                  onUpload={handleUpload}
                 />
               </div>
 

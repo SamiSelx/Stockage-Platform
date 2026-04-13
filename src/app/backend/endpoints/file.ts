@@ -11,11 +11,19 @@ export const apiFile = api.injectEndpoints({
           : `${API_FILE}`,
         method: "GET",
       }),
-      providesTags: ["file"],
+      providesTags: ["file", "auth"],
     }),
     uploadFile: build.mutation<ResponseI<FileI>, FormData>({
       query: (formData) => ({
         url: `${API_FILE}/upload`,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["file"],
+    }),
+    uploadMultipleFiles: build.mutation<ResponseI<FileI[]>, FormData>({
+      query: (formData) => ({
+        url: `${API_FILE}/upload-multiple`,
         method: "POST",
         body: formData,
       }),
@@ -34,21 +42,21 @@ export const apiFile = api.injectEndpoints({
         url: `${API_FILE}/recent`,
         method: "GET",
       }),
-      providesTags: ["file"],
+      providesTags: ["file","auth"],
     }),
     getTrashFiles: build.query<ResponseI<GetTrashFilesResponse>, void>({
       query: () => ({
         url: `${API_FILE}/trash`,
         method: "GET",
       }),
-      providesTags: ["file"],
+      providesTags: ["file","auth"],
     }),
     getStarredFiles: build.query<ResponseI<GetStarredFilesResponse>, void>({
       query: () => ({
         url: `${API_FILE}/starred`,
         method: "GET",
       }),
-      providesTags: ["file"],
+      providesTags: ["file","auth"],
     }),
 
     setStarredFiles: build.mutation<
@@ -89,7 +97,7 @@ export const apiFile = api.injectEndpoints({
         url: `${API_FILE}/statistics`,
         method: "GET",
       }),
-      providesTags: ["file", "folder"],
+      providesTags: ["file","folder","auth"],
     }),
     shareFile: build.mutation<
       ResponseI<FileShareI>,
@@ -107,7 +115,7 @@ export const apiFile = api.injectEndpoints({
         url: `${API_FILE}/shared`,
         method: "GET",
       }),
-      providesTags: ["file"],
+      providesTags: ["file","auth"],
     }),
   }),
 });
@@ -115,6 +123,7 @@ export const apiFile = api.injectEndpoints({
 export const {
   useGetFilesQuery,
   useUploadFileMutation,
+  useUploadMultipleFilesMutation,
   useDownloadFileMutation,
   useGetRecentFilesQuery,
   useGetTrashFilesQuery,

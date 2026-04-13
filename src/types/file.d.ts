@@ -11,6 +11,7 @@ interface FileI {
   fk_iv: string;
   mimetype: string;
   folderId?: string | null;
+  shared?: boolean;
   createdAt: Date;
   updatedAt: Date;
   isStarred: boolean;
@@ -65,12 +66,15 @@ interface ListeFilesResponse {
 }
 
 interface StatisticResponse {
-  totalFiles: number;
-  totalFolders: number;
-  archivedFiles: number;
-  archivedFolders: number;
-  starredFiles: number;
-  openedFiles: number;
+  totalSharedFiles: number,
+  sharedWithMe: number,
+  totalSharedFolders?: number,
+  totalFiles: number,
+  totalFolders: number,
+  archivedFiles: number,
+  archivedFolders: number,
+  starredFiles: number,
+  openedFiles: number,
   storage: {
     used: number;
     total: number;

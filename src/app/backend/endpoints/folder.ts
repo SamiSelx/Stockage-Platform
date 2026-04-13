@@ -9,7 +9,7 @@ export const apiFolder = api.injectEndpoints({
                 url: `${API_FOLDER}?parentFolder=${parentFolder}`,
                 method: "GET",
             }),
-            providesTags: ["folder","file"]
+            providesTags: ["folder","file","auth"],
         }),
         createFolder: build.mutation<ResponseI<FolderI>, { name: string; parentFolder?: string }>({
             query: (body) => ({
@@ -31,7 +31,7 @@ export const apiFolder = api.injectEndpoints({
                 url: `${API_FOLDER}/${folderId}`,
                 method: "GET",
             }),
-            providesTags: ["folder"]
+            providesTags: ["folder","auth"]
     }),
 
     supprimerDossier: build.mutation<ResponseI<null>, string>({

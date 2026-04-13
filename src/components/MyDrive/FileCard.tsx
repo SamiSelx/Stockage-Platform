@@ -80,7 +80,7 @@ export function FileCard({
             <FileIcon type={file.type} size={16} className="mr-2" />
             Preview
           </ContextMenuItem>
-          <ContextMenuItem onClick={()=> handleDownload(file)}>
+          <ContextMenuItem onClick={()=> handleDownload(file, file?.shared || false)}>
             <Download size={16} className="mr-2" />
             Download
           </ContextMenuItem>
@@ -156,7 +156,7 @@ export function FileCard({
               {formatDate(new Date(file.updatedAt))}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              {file.owner.lastName} {file.owner.firstName} ({file.owner._id == (user as UserI)._id ? "You" : ""})
+              {file.owner.lastName} {file.owner.firstName} ({file.owner._id == (user as UserI)._id ? "You" : "Shared"})
             </p>
           </div>
         </div>
@@ -170,7 +170,7 @@ export function FileCard({
           <FileIcon type={file.type} size={16} className="mr-2" />
           Preview
         </ContextMenuItem>
-        <ContextMenuItem onClick={()=> handleDownload(file)}>
+        <ContextMenuItem onClick={()=> handleDownload(file, file?.shared || false)}>
           <Download size={16} className="mr-2" />
           Download
         </ContextMenuItem>

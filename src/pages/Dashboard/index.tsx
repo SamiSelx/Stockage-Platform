@@ -6,9 +6,11 @@ import FileTable from "@/components/Dashboard/FilesTable";
 import { useGetFilesQuery, useGetStatisticsQuery, useSupprimerFichierMutation } from "@/app/backend/endpoints/file";
 import useUser from "@/hooks/useUser";
 import { toast } from "sonner";
+import useFile from "@/hooks/useFile";
 
 export default function Overview() {
   const { user } = useUser();
+  const { handleUpload } = useFile();
   const { data: statisticsData } = useGetStatisticsQuery();
   const statistics = statisticsData?.data;
   console.log("Fetched statistics for dashboard:", statistics);
@@ -40,6 +42,8 @@ export default function Overview() {
   const remainingQuota = Math.max(totalQuota - usedQuota, 0);
   const totalFilesCount = Number(statistics?.totalFiles ?? files.length);
   const totalFoldersCount = Number(statistics?.totalFolders ?? 0);
+  const totalSharedFiles = Number(statistics?.totalSharedFiles ?? 0);
+  const sharedWithMeCount = Number(statistics?.sharedWithMe ?? 0);
 
   const handleDeleteFile = async (_id: string) => {
     try {
@@ -100,6 +104,22 @@ export default function Overview() {
                   {totalFoldersCount}
                 </p>
               </div>
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Nombre de fichiers partagés
+                </p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">
+                  {totalSharedFiles}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Nombre de fichiers partagés avec moi
+                </p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">
+                  {sharedWithMeCount}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -130,7 +150,7 @@ export default function Overview() {
 
         {/* Upload Section */}
         <div className="mb-8">
-          <UploadZone onUpload={() => console.log("Uploading")}/>
+          <UploadZone onUpload={handleUpload} />
         </div>
 
         {/* Files Section */}

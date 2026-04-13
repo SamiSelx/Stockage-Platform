@@ -1,28 +1,46 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/input'
-import { Card } from '@/components/ui/card'
-import { Copy, Check, Link2, FileIcon, Lock, Eye, EyeOff, Search, User, Mail, X } from 'lucide-react'
-import { useGetAllUsersQuery } from '@/app/backend/endpoints/user'
-import { useShareFileMutation } from '@/app/backend/endpoints/file'
-import { encryptFKForUser, importPublicKey, isMiniCertificateCurrentlyValid, restoreRMKFromSession, unwrapFileKey } from '@/utils/crypto'
-import uint8ToBase64, { base64ToUint8Array } from '@/utils/convertBase64'
-
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import {
+  Copy,
+  Check,
+  Link2,
+  FileIcon,
+  Lock,
+  Eye,
+  EyeOff,
+  Search,
+  User,
+  Mail,
+  X,
+} from "lucide-react";
+import { useGetAllUsersQuery } from "@/app/backend/endpoints/user";
+import { useShareFileMutation } from "@/app/backend/endpoints/file";
+import {
+  encryptFKForUser,
+  importPublicKey,
+  restoreRMKFromSession,
+  isMiniCertificateCurrentlyValid,
+  unwrapFileKey,
+} from "@/utils/crypto";
+import uint8ToBase64, { base64ToUint8Array } from "@/utils/convertBase64";
+import { toast } from "sonner";
 
 interface ShareFileDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  fileName: string
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  fileName: string;
   fileId: string;
   encryptedFK: string;
-  fk_iv:string
+  fk_iv: string;
 }
 
 export function ShareFileDialog({
@@ -31,41 +49,46 @@ export function ShareFileDialog({
   fileName,
   fileId,
   encryptedFK,
-  fk_iv
+  fk_iv,
 }: ShareFileDialogProps) {
-    const [users, setUsers] = useState<UserI[]>([])
-    const {data: usersData} = useGetAllUsersQuery()
-    // const users = usersData?.data || []
-    console.log("user", users,fileId);
-    const [shareFile] = useShareFileMutation()
-    
-  const [copied, setCopied] = useState<'link' | 'key' | null>(null)
-  const [showKey, setShowKey] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedUsers, setSelectedUsers] = useState<UserI[]>([])
-  const [activeTab, setActiveTab] = useState<'search' | 'sharing'>('search')
+  const [users, setUsers] = useState<UserI[]>([]);
+  const { data: usersData } = useGetAllUsersQuery();
+  // const users = usersData?.data || []
+  console.log("user", users, fileId);
+  const [shareFile] = useShareFileMutation();
+
+  const [copied, setCopied] = useState<"link" | "key" | null>(null);
+  const [showKey, setShowKey] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState<UserI[]>([]);
+  const [activeTab, setActiveTab] = useState<"search" | "sharing">("search");
 
   // Generate share link and encryption key
-  const shareLink = `https://cryptodrive.app/shared/${fileId}`
-  const encryptionKey = `enc_${fileId}_${Math.random().toString(36).substring(2, 15)}`
+  const shareLink = `https://cryptodrive.app/shared/${fileId}`;
+  const encryptionKey = `enc_${fileId}_${Math.random().toString(36).substring(2, 15)}`;
 
-  useEffect(()=>{
-    if(usersData?.data){
-        setUsers(usersData?.data)
+  useEffect(() => {
+    if (usersData?.data) {
+      setUsers(usersData?.data);
     }
-  },[usersData?.data])
+  }, [usersData?.data]);
 
   // Filter users based on search query
   const filteredUsers = useMemo(() => {
-    if (!searchQuery.trim()) return users
-    return users.filter(user =>
-      (user.firstName + " " + user.lastName).toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  }, [searchQuery, users])
+    if (!searchQuery.trim()) return users;
+    return users.filter(
+      (user) =>
+        (user.firstName + " " + user.lastName)
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [searchQuery, users]);
 
   // Users already selected
-  const availableUsers = filteredUsers.filter(user => !selectedUsers.some(s => s._id === user._id))
+  const availableUsers = filteredUsers.filter(
+    (user) => !selectedUsers.some((s) => s._id === user._id),
+  );
 
   // const handleSelectUser = (user: UserI) => {
   //   setSelectedUsers([...selectedUsers, user])
@@ -73,16 +96,17 @@ export function ShareFileDialog({
   // }
 
   const handleRemoveUser = (userId: string) => {
-    setSelectedUsers(selectedUsers.filter(u => u._id !== userId))
-  }
+    setSelectedUsers(selectedUsers.filter((u) => u._id !== userId));
+  };
 
-  const handleCopy = (text: string, type: 'link' | 'key') => {
-    navigator.clipboard.writeText(text)
-    setCopied(type)
-    setTimeout(() => setCopied(null), 2000)
-  }
+  const handleCopy = (text: string, type: "link" | "key") => {
+    navigator.clipboard.writeText(text);
+    setCopied(type);
+    setTimeout(() => setCopied(null), 2000);
+  };
 
   async function handleShareFile(user: UserI) {
+
    try{
             const certValidationEnabled = import.meta.env.VITE_ENABLE_CERT_AUTH === "true";
             if (certValidationEnabled) {
@@ -99,29 +123,35 @@ export function ShareFileDialog({
             if (!rmk)
               throw new Error("Please log in again.");
 
-            console.log("encrypted FK",encryptedFK, "fk iv", user);
-            
-    
-            // unwrap the file key
-            const fileKey = await unwrapFileKey(
-              base64ToUint8Array(encryptedFK),
-              rmk,
-              base64ToUint8Array(fk_iv),
-            );
-            const publicKey = await importPublicKey(base64ToUint8Array(user.publicKey));
-            const encryptedFKForRecipient = await encryptFKForUser(fileKey, publicKey);
+      // unwrap the file key
+      const fileKey = await unwrapFileKey(
+        base64ToUint8Array(encryptedFK),
+        rmk,
+        base64ToUint8Array(fk_iv),
+      );
+      const publicKey = await importPublicKey(
+        base64ToUint8Array(user.publicKey),
+      );
+      const encryptedFKForRecipient = await encryptFKForUser(
+        fileKey,
+        publicKey,
+      );
 
-    shareFile({ fileId, recipientId: user._id, encryptedFK: uint8ToBase64(encryptedFKForRecipient) })
+      shareFile({
+        fileId,
+        recipientId: user._id,
+        encryptedFK: uint8ToBase64(encryptedFKForRecipient),
+      })
         .unwrap()
-        .then(data => {
-            console.log("File shared successfully:", data);
+        .then(() => {
+          toast.success(`File shared with ${user.firstName} ${user.lastName} (${user.email})`);
         })
-        .catch(error => {
-            console.error("Error sharing file:", error);
+        .catch((error) => {
+          toast.error(error.data.message || "Failed to share file");
         });
-   }catch(err){
-        console.error("Error sharing file:", err)
-   }
+    } catch (err) {
+      console.error("Error sharing file:", err);
+    }
   }
 
   return (
@@ -130,7 +160,8 @@ export function ShareFileDialog({
         <DialogHeader>
           <DialogTitle className="text-2xl">Share File</DialogTitle>
           <DialogDescription className="text-base pt-1">
-            Share &quot;{fileName}&quot; securely - recipients view from your drive
+            Share &quot;{fileName}&quot; securely - recipients view from your
+            drive
           </DialogDescription>
         </DialogHeader>
 
@@ -141,7 +172,9 @@ export function ShareFileDialog({
               <FileIcon className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{fileName}</p>
+              <p className="text-sm font-medium text-foreground truncate">
+                {fileName}
+              </p>
               <p className="text-xs text-muted-foreground">Ready to share</p>
             </div>
           </div>
@@ -149,22 +182,22 @@ export function ShareFileDialog({
           {/* Tabs */}
           <div className="flex gap-2 border-b border-border">
             <button
-              onClick={() => setActiveTab('search')}
+              onClick={() => setActiveTab("search")}
               className={`pb-3 px-1 text-sm font-medium transition-colors ${
-                activeTab === 'search'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-foreground'
+                activeTab === "search"
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <Search className="w-4 h-4 inline mr-2" />
               Find People
             </button>
             <button
-              onClick={() => setActiveTab('sharing')}
+              onClick={() => setActiveTab("sharing")}
               className={`pb-3 px-1 text-sm font-medium transition-colors ${
-                activeTab === 'sharing'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-foreground'
+                activeTab === "sharing"
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Access Details
@@ -172,7 +205,7 @@ export function ShareFileDialog({
           </div>
 
           {/* Tab Content */}
-          {activeTab === 'search' ? (
+          {activeTab === "search" ? (
             <div className="space-y-4">
               {/* Search Input */}
               <div className="relative">
@@ -192,14 +225,16 @@ export function ShareFileDialog({
                     SHARING WITH ({selectedUsers.length})
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {selectedUsers.map(user => (
+                    {selectedUsers.map((user) => (
                       <div
                         key={user._id}
                         className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/30"
                       >
                         {/* <span className="text-sm">{user.avatar}</span> */}
                         <div className="text-xs">
-                          <p className="font-medium text-foreground">{user.lastName + " " + user.firstName}</p>
+                          <p className="font-medium text-foreground">
+                            {user.lastName + " " + user.firstName}
+                          </p>
                           <p className="text-muted-foreground">{user.email}</p>
                         </div>
                         <button
@@ -217,7 +252,7 @@ export function ShareFileDialog({
               {/* User Results */}
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {availableUsers.length > 0 ? (
-                  availableUsers.map(user => (
+                  availableUsers.map((user) => (
                     <Card
                       key={user._id}
                       className="p-3 bg-background hover:bg-secondary/50 border-border hover:border-primary/30 transition-colors cursor-pointer"
@@ -227,7 +262,9 @@ export function ShareFileDialog({
                         <div className="flex items-center gap-3">
                           {/* <span className="text-lg">{user.avatar}</span> */}
                           <div>
-                            <p className="text-sm font-medium text-foreground">{user.lastName + " " + user.firstName}</p>
+                            <p className="text-sm font-medium text-foreground">
+                              {user.lastName + " " + user.firstName}
+                            </p>
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                               <Mail className="w-3 h-3" />
                               {user.email}
@@ -238,7 +275,7 @@ export function ShareFileDialog({
                           size="sm"
                           variant="outline"
                           className="text-xs"
-                          onClick={()=> handleShareFile(user)}
+                          onClick={() => handleShareFile(user)}
                         >
                           Share
                         </Button>
@@ -248,7 +285,9 @@ export function ShareFileDialog({
                 ) : searchQuery ? (
                   <div className="text-center py-8">
                     <User className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-                    <p className="text-sm text-muted-foreground">No users found</p>
+                    <p className="text-sm text-muted-foreground">
+                      No users found
+                    </p>
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground text-center py-8">
@@ -274,10 +313,10 @@ export function ShareFileDialog({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleCopy(shareLink, 'link')}
+                      onClick={() => handleCopy(shareLink, "link")}
                       className="flex-shrink-0 h-8 w-8"
                     >
-                      {copied === 'link' ? (
+                      {copied === "link" ? (
                         <Check className="w-4 h-4 text-primary" />
                       ) : (
                         <Copy className="w-4 h-4" />
@@ -295,17 +334,23 @@ export function ShareFileDialog({
                 </label>
                 <Card className="p-4 bg-background border-border">
                   <div className="flex items-center gap-2">
-                    <code className={`text-xs font-mono flex-1 truncate px-3 py-2 rounded ${
-                      showKey ? 'text-foreground bg-background/50' : 'text-muted-foreground bg-background/50 blur-sm'
-                    }`}>
-                      {showKey ? encryptionKey : '••••••••••••••••••••••••••••••••'}
+                    <code
+                      className={`text-xs font-mono flex-1 truncate px-3 py-2 rounded ${
+                        showKey
+                          ? "text-foreground bg-background/50"
+                          : "text-muted-foreground bg-background/50 blur-sm"
+                      }`}
+                    >
+                      {showKey
+                        ? encryptionKey
+                        : "••••••••••••••••••••••••••••••••"}
                     </code>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => setShowKey(!showKey)}
                       className="flex-shrink-0 h-8 w-8"
-                      title={showKey ? 'Hide key' : 'Show key'}
+                      title={showKey ? "Hide key" : "Show key"}
                     >
                       {showKey ? (
                         <EyeOff className="w-4 h-4" />
@@ -316,10 +361,10 @@ export function ShareFileDialog({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleCopy(encryptionKey, 'key')}
+                      onClick={() => handleCopy(encryptionKey, "key")}
                       className="flex-shrink-0 h-8 w-8"
                     >
-                      {copied === 'key' ? (
+                      {copied === "key" ? (
                         <Check className="w-4 h-4 text-primary" />
                       ) : (
                         <Copy className="w-4 h-4" />
@@ -332,7 +377,9 @@ export function ShareFileDialog({
               {/* Info Box */}
               <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900">
                 <p className="text-xs text-blue-900 dark:text-blue-200">
-                  <strong>How it works:</strong> Share the link and key separately for security. Recipients need both to access your file from your drive.
+                  <strong>How it works:</strong> Share the link and key
+                  separately for security. Recipients need both to access your
+                  file from your drive.
                 </p>
               </div>
             </div>
@@ -347,9 +394,9 @@ export function ShareFileDialog({
             >
               Close
             </Button>
-            {activeTab === 'search' && selectedUsers.length > 0 && (
+            {activeTab === "search" && selectedUsers.length > 0 && (
               <Button
-                onClick={() => setActiveTab('sharing')}
+                onClick={() => setActiveTab("sharing")}
                 className="flex-1"
               >
                 Continue to Access Details
@@ -359,5 +406,5 @@ export function ShareFileDialog({
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
