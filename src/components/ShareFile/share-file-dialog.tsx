@@ -33,6 +33,7 @@ import {
 } from "@/utils/crypto";
 import uint8ToBase64, { base64ToUint8Array } from "@/utils/convertBase64";
 import { toast } from "sonner";
+import useUser from "@/hooks/useUser";
 
 interface ShareFileDialogProps {
   open: boolean;
@@ -101,6 +102,7 @@ function normalizeIdentityCertificate(
   return cert as MiniCertificateLike;
 }
 
+
 export function ShareFileDialog({
   open,
   onOpenChange,
@@ -112,7 +114,7 @@ export function ShareFileDialog({
   const [users, setUsers] = useState<UserI[]>([]);
   const { data: usersData } = useGetAllUsersQuery();
   // const users = usersData?.data || []
-  console.log("user", users, fileId);
+  const {user} = useUser()
   const [shareFile] = useShareFileMutation();
 
   const [copied, setCopied] = useState<"link" | "key" | null>(null);
@@ -127,9 +129,9 @@ export function ShareFileDialog({
 
   useEffect(() => {
     if (usersData?.data) {
-      setUsers(usersData?.data);
+      setUsers(usersData?.data.filter((u) => u._id !== (user as UserI)?._id));
     }
-  }, [usersData?.data]);
+  }, [usersData?.data, user]);
 
   // Filter users based on search query
   const filteredUsers = useMemo(() => {
@@ -164,6 +166,7 @@ export function ShareFileDialog({
   };
 
   async function handleShareFile(user: UserI) {
+
     try {
       const certValidationEnabled =
         import.meta.env.VITE_ENABLE_CERT_AUTH === "true";
@@ -202,9 +205,9 @@ export function ShareFileDialog({
         }
       }
 
-      const rmk = await restoreRMKFromSession();
-      console.log("rrmm ", rmk);
-      if (!rmk) throw new Error("Please log in again.");
+ const rmk = await restoreRMKFromSession();
+            if (!rmk)
+              throw new Error("Please log in again.");
 
       // unwrap the file key
       const fileKey = await unwrapFileKey(
@@ -227,9 +230,7 @@ export function ShareFileDialog({
       })
         .unwrap()
         .then(() => {
-          toast.success(
-            `File shared with ${user.firstName} ${user.lastName} (${user.email})`,
-          );
+          toast.success(`File shared with ${user.firstName} ${user.lastName} (${user.email})`);
         })
         .catch((error) => {
           toast.error(error.data.message || "Failed to share file");
@@ -277,16 +278,7 @@ export function ShareFileDialog({
               <Search className="w-4 h-4 inline mr-2" />
               Find People
             </button>
-            <button
-              onClick={() => setActiveTab("sharing")}
-              className={`pb-3 px-1 text-sm font-medium transition-colors ${
-                activeTab === "sharing"
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Access Details
-            </button>
+
           </div>
 
           {/* Tab Content */}

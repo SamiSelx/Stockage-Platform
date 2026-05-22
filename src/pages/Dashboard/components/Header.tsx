@@ -128,9 +128,9 @@ export default function Navbar({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem className="cursor-pointer">
+              {/* <DropdownMenuItem className="cursor-pointer">
                 Settings
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
               {/* <DropdownMenuItem>Help & feedback</DropdownMenuItem>
               <DropdownMenuItem>Keyboard shortcuts</DropdownMenuItem> */}
               <DropdownMenuItem

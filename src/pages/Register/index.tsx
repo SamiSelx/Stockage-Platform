@@ -1,5 +1,6 @@
 import {
   useEnrollCertificateMutation,
+  useLogoutMutation,
   useRegisterMutation,
 } from "@/app/backend/endpoints/auth";
 import { Button } from "@/components/ui/Button";
@@ -36,6 +37,7 @@ export default function Register() {
   const navigate = useNavigate();
   const [recoveryKey, setRecoveryKey] = useState("");
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
+  const [logout] = useLogoutMutation()
 
   const initUser = async (password: string) => {
     console.log("=== INIT USER ===");
@@ -78,7 +80,7 @@ export default function Register() {
   };
 
   useEffect(() => {
-    if (user && Object.keys(user).length != 0 && showRecoveryDialog == false) navigate("/dashboard");
+    if (user && Object.keys(user).length != 0 && showRecoveryDialog == false) navigate("/login");
   }, [user, navigate, showRecoveryDialog]);
 
   const formik = useFormik<RegisterI & { confirmPassword: string }>({
@@ -128,7 +130,7 @@ export default function Register() {
           setShowRecoveryDialog(true);
 
           const userData = res.data;
-          setUser(userData);
+          // setUser(userData);
           console.log("[REGISTER_DEBUG] Register success", {
             userId: userData._id,
             email: userData.email,
@@ -199,6 +201,14 @@ export default function Register() {
           toast.success("Inscription réussie", {
             description: res.message,
           });
+          logout().unwrap().then(() => {
+            removeUser();
+            // console.log("[REGISTER_DEBUG] User logged out after registration");
+          }).catch(() => {
+            // console.error("[REGISTER_DEBUG] Logout failed after registration", {
+            //   error: logoutErr,
+            });
+
         })
         .catch((err) => {
           removeUser();
