@@ -33,7 +33,7 @@ import {
 } from "@/utils/crypto";
 import { base64ToUint8Array } from "@/utils/convertBase64";
 import uint8ToBase64, { stringToUint8Array } from "@/utils/convertBase64";
-
+const certAuthEnabled = import.meta.env.VITE_ENABLE_CERT_AUTH === "true";
 export default function Login() {
   useTitle("Stockage Platform - Connexion");
   const [login, { isLoading }] = useLoginMutation();
@@ -57,7 +57,7 @@ export default function Login() {
     onSubmit: async (body) => {
       console.log("[LOGIN_DEBUG] Submit started", {
         email: body.email,
-        certAuthEnabled: import.meta.env.VITE_ENABLE_CERT_AUTH === "true",
+        certAuthEnabled,
       });
 
       login(body)
@@ -73,9 +73,51 @@ export default function Login() {
           }
 
           const userData = res.data;
-          const certAuthEnabled =
-            import.meta.env.VITE_ENABLE_CERT_AUTH === "true";
           let localIdentityMaterial = await getIdentityAuthMaterial();
+
+          const enrollIdentityMaterial = async () => {
+            if (!userData.token) {
+              return null;
+            }
+
+            console.log(
+              "[LOGIN_DEBUG] Attempting identity material re-enrollment",
+            );
+
+            const signingKeyPair = await generateIdentitySigningKeyPair();
+            const signPublicKeySpki = await exportPublicKeySpki(
+              signingKeyPair.publicKey,
+            );
+            const {
+              encryptedPrivateKey: encryptedSigningPrivateKey,
+              iv: signingPrivateKeyIv,
+            } = await protectSigningPrivateKey(signingKeyPair.privateKey, kek);
+
+            const enrollRes = await enrollCertificate({
+              userId: userData._id,
+              email: userData.email,
+              signPublicKeySpkiB64: uint8ToBase64(signPublicKeySpki),
+              token: userData.token,
+            }).unwrap();
+
+            if (!enrollRes.data) {
+              return null;
+            }
+
+            const material = {
+              certificate: enrollRes.data.certificate,
+              caSignatureB64: enrollRes.data.caSignatureB64,
+              encryptedSigningPrivateKey,
+              signingPrivateKeyIv,
+            };
+
+            await storeIdentityAuthMaterial(material);
+
+            console.log("[LOGIN_DEBUG] Identity material enrollment succeeded");
+
+            return material;
+          };
+
           console.log("[LOGIN_DEBUG] Identity material presence", {
             userId: userData._id,
             email: userData.email,
@@ -127,44 +169,7 @@ export default function Login() {
                 console.log(
                   "[LOGIN_DEBUG] No local identity material found, attempting re-enrollment",
                 );
-                const signingKeyPair = await generateIdentitySigningKeyPair();
-                const signPublicKeySpki = await exportPublicKeySpki(
-                  signingKeyPair.publicKey,
-                );
-                const {
-                  encryptedPrivateKey: encryptedSigningPrivateKey,
-                  iv: signingPrivateKeyIv,
-                } = await protectSigningPrivateKey(
-                  signingKeyPair.privateKey,
-                  kek,
-                );
-
-                const enrollRes = await enrollCertificate({
-                  userId: userData._id,
-                  email: userData.email,
-                  signPublicKeySpkiB64: uint8ToBase64(signPublicKeySpki),
-                  token: userData.token,
-                }).unwrap();
-
-                if (enrollRes.data) {
-                  await storeIdentityAuthMaterial({
-                    certificate: enrollRes.data.certificate,
-                    caSignatureB64: enrollRes.data.caSignatureB64,
-                    encryptedSigningPrivateKey,
-                    signingPrivateKeyIv,
-                  });
-
-                  localIdentityMaterial = {
-                    certificate: enrollRes.data.certificate,
-                    caSignatureB64: enrollRes.data.caSignatureB64,
-                    encryptedSigningPrivateKey,
-                    signingPrivateKeyIv,
-                  };
-
-                  console.log(
-                    "[LOGIN_DEBUG] Re-enrollment succeeded and local identity material restored",
-                  );
-                }
+                localIdentityMaterial = await enrollIdentityMaterial();
               } catch (enrollErr) {
                 console.error(
                   "[LOGIN_DEBUG] Re-enrollment failed; continuing without local identity material",
@@ -173,20 +178,24 @@ export default function Login() {
               }
             }
 
-            const identityMaterial = localIdentityMaterial;
+            let identityMaterial = localIdentityMaterial;
             if (identityMaterial) {
+              let activeIdentityMaterial = identityMaterial as NonNullable<
+                typeof identityMaterial
+              >;
               console.log("[LOGIN_DEBUG] Identity material found locally");
               console.log("[CERT_DEBUG] Local certificate fields", {
-                certId: identityMaterial.certificate.certId,
-                serialNumber: identityMaterial.certificate.serialNumber,
-                issuer: identityMaterial.certificate.issuer,
-                subjectUserId: identityMaterial.certificate.subject.userId,
-                subjectEmail: identityMaterial.certificate.subject.email,
-                sigAlg: identityMaterial.certificate.sigAlg,
-                keyUsage: identityMaterial.certificate.keyUsage,
-                notBefore: identityMaterial.certificate.notBefore,
-                notAfter: identityMaterial.certificate.notAfter,
-                hasCaSignature: !!identityMaterial.caSignatureB64,
+                certId: activeIdentityMaterial.certificate.certId,
+                serialNumber: activeIdentityMaterial.certificate.serialNumber,
+                issuer: activeIdentityMaterial.certificate.issuer,
+                subjectUserId:
+                  activeIdentityMaterial.certificate.subject.userId,
+                subjectEmail: activeIdentityMaterial.certificate.subject.email,
+                sigAlg: activeIdentityMaterial.certificate.sigAlg,
+                keyUsage: activeIdentityMaterial.certificate.keyUsage,
+                notBefore: activeIdentityMaterial.certificate.notBefore,
+                notAfter: activeIdentityMaterial.certificate.notAfter,
+                hasCaSignature: !!activeIdentityMaterial.caSignatureB64,
               });
 
               const challengeRes = await startIdentityChallenge({
@@ -206,43 +215,76 @@ export default function Login() {
                 sigAlgRequired: challengeData.sigAlgRequired,
               });
 
-              const signingPrivateKey = await decryptSigningPrivateKey(
-                identityMaterial.encryptedSigningPrivateKey,
-                identityMaterial.signingPrivateKeyIv,
-                kek,
-              );
+              let signingPrivateKey: CryptoKey | null = null;
+              try {
+                signingPrivateKey = await decryptSigningPrivateKey(
+                  activeIdentityMaterial.encryptedSigningPrivateKey,
+                  activeIdentityMaterial.signingPrivateKeyIv,
+                  kek,
+                );
+              } catch (decryptErr) {
+                console.error(
+                  "[LOGIN_DEBUG] Stored signing private key could not be decrypted; attempting re-enrollment",
+                  decryptErr,
+                );
 
-              const clientTimestamp = new Date().toISOString();
-              const payload = buildAuthChallengePayload({
-                challengeId: challengeData.challengeId,
-                nonceB64: challengeData.nonceB64,
-                userId: userData._id,
-                email: userData.email,
-                clientTimestamp,
-              });
+                try {
+                  identityMaterial = await enrollIdentityMaterial();
+                  if (identityMaterial) {
+                    activeIdentityMaterial = identityMaterial as NonNullable<
+                      typeof identityMaterial
+                    >;
+                    signingPrivateKey = await decryptSigningPrivateKey(
+                      activeIdentityMaterial.encryptedSigningPrivateKey,
+                      activeIdentityMaterial.signingPrivateKeyIv,
+                      kek,
+                    );
+                  }
+                } catch (retryErr) {
+                  console.error(
+                    "[LOGIN_DEBUG] Re-enrollment retry failed; continuing login without certificate challenge",
+                    retryErr,
+                  );
+                }
+              }
 
-              const signature = await signAuthChallengePayload(
-                payload,
-                signingPrivateKey,
-              );
-              console.log("[CERT_DEBUG] Signed payload metadata", {
-                clientTimestamp,
-                payloadLength: payload.length,
-                signatureBytes: signature.byteLength,
-              });
+              if (!signingPrivateKey) {
+                console.warn(
+                  "[LOGIN_DEBUG] Certificate auth skipped because identity signing private key is unavailable",
+                );
+              } else {
+                const clientTimestamp = new Date().toISOString();
+                const payload = buildAuthChallengePayload({
+                  challengeId: challengeData.challengeId,
+                  nonceB64: challengeData.nonceB64,
+                  userId: userData._id,
+                  email: userData.email,
+                  clientTimestamp,
+                });
 
-              await verifyIdentityChallenge({
-                challengeId: challengeData.challengeId,
-                certificate: identityMaterial.certificate,
-                caSignatureB64: identityMaterial.caSignatureB64,
-                clientTimestamp,
-                signedPayloadB64: uint8ToBase64(stringToUint8Array(payload)),
-                signatureB64: uint8ToBase64(signature),
-                token: userData.token,
-              }).unwrap();
-              console.log(
-                "[LOGIN_DEBUG] Identity challenge verified successfully",
-              );
+                const signature = await signAuthChallengePayload(
+                  payload,
+                  signingPrivateKey,
+                );
+                console.log("[CERT_DEBUG] Signed payload metadata", {
+                  clientTimestamp,
+                  payloadLength: payload.length,
+                  signatureBytes: signature.byteLength,
+                });
+
+                await verifyIdentityChallenge({
+                  challengeId: challengeData.challengeId,
+                  certificate: activeIdentityMaterial.certificate,
+                  caSignatureB64: activeIdentityMaterial.caSignatureB64,
+                  clientTimestamp,
+                  signedPayloadB64: uint8ToBase64(stringToUint8Array(payload)),
+                  signatureB64: uint8ToBase64(signature),
+                  token: userData.token,
+                }).unwrap();
+                console.log(
+                  "[LOGIN_DEBUG] Identity challenge verified successfully",
+                );
+              }
             } else {
               console.warn(
                 "[LOGIN_DEBUG] Certificate auth enabled but no local identity material found",

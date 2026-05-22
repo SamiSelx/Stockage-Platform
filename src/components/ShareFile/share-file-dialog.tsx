@@ -43,6 +43,64 @@ interface ShareFileDialogProps {
   fk_iv: string;
 }
 
+type MiniCertificateLike = {
+  certId: string;
+  serialNumber: string;
+  subject: { userId: string; email: string };
+  issuer: string;
+  signPublicKeySpkiB64: string;
+  keyUsage: string[];
+  sigAlg: string;
+  notBefore: string;
+  notAfter: string;
+};
+
+function normalizeIdentityCertificate(
+  input: unknown,
+): MiniCertificateLike | null {
+  if (!input) return null;
+
+  let parsed: unknown = input;
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!parsed || typeof parsed !== "object") return null;
+
+  const wrapped = (parsed as { certificate?: unknown }).certificate;
+  let certCandidate: unknown = wrapped ?? parsed;
+
+  if (typeof certCandidate === "string") {
+    try {
+      certCandidate = JSON.parse(certCandidate);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!certCandidate || typeof certCandidate !== "object") return null;
+
+  const cert = certCandidate as Partial<MiniCertificateLike>;
+  if (
+    typeof cert.certId !== "string" ||
+    typeof cert.serialNumber !== "string" ||
+    typeof cert.issuer !== "string" ||
+    typeof cert.notBefore !== "string" ||
+    typeof cert.notAfter !== "string" ||
+    !cert.subject ||
+    typeof cert.subject.userId !== "string" ||
+    typeof cert.subject.email !== "string"
+  ) {
+    return null;
+  }
+
+  return cert as MiniCertificateLike;
+}
+
 export function ShareFileDialog({
   open,
   onOpenChange,
@@ -106,22 +164,47 @@ export function ShareFileDialog({
   };
 
   async function handleShareFile(user: UserI) {
+    try {
+      const certValidationEnabled =
+        import.meta.env.VITE_ENABLE_CERT_AUTH === "true";
+      console.log("cert validation enabled ", certValidationEnabled);
+      if (certValidationEnabled) {
+        const cert = normalizeIdentityCertificate(user.identityCertificate);
+        const validDate = isMiniCertificateCurrentlyValid(cert);
+        const subjectMatches =
+          !!cert &&
+          cert.subject?.userId === user._id &&
+          cert.subject?.email === user.email;
+        console.log("[SHARE_DEBUG] recipient certificate details", {
+          userId: user._id,
+          email: user.email,
+          rawIdentityCertificate: user.identityCertificate,
+          rawIdentityCertificateType: typeof user.identityCertificate,
+          rawIdentityCertificateKeys:
+            user.identityCertificate &&
+            typeof user.identityCertificate === "object"
+              ? Object.keys(user.identityCertificate)
+              : null,
+          certExists: !!user.identityCertificate,
+          certNormalized: !!cert,
+          certId: cert?.certId,
+          serialNumber: cert?.serialNumber,
+          issuer: cert?.issuer,
+          subjectUserId: cert?.subject?.userId,
+          subjectEmail: cert?.subject?.email,
+          notBefore: cert?.notBefore,
+          notAfter: cert?.notAfter,
+          validDate,
+          subjectMatches,
+        });
+        if (!cert || !validDate || !subjectMatches) {
+          throw new Error("Recipient certificate is missing or invalid");
+        }
+      }
 
-   try{
-            const certValidationEnabled = import.meta.env.VITE_ENABLE_CERT_AUTH === "true";
-            if (certValidationEnabled) {
-              const cert = user.identityCertificate;
-              const validDate = isMiniCertificateCurrentlyValid(cert);
-              const subjectMatches = !!cert && cert.subject?.userId === user._id && cert.subject?.email === user.email;
-              if (!cert || !validDate || !subjectMatches) {
-                throw new Error("Recipient certificate is missing or invalid");
-              }
-            }
-
- const rmk = await restoreRMKFromSession();
- console.log("rrmm ",rmk)
-            if (!rmk)
-              throw new Error("Please log in again.");
+      const rmk = await restoreRMKFromSession();
+      console.log("rrmm ", rmk);
+      if (!rmk) throw new Error("Please log in again.");
 
       // unwrap the file key
       const fileKey = await unwrapFileKey(
@@ -144,7 +227,9 @@ export function ShareFileDialog({
       })
         .unwrap()
         .then(() => {
-          toast.success(`File shared with ${user.firstName} ${user.lastName} (${user.email})`);
+          toast.success(
+            `File shared with ${user.firstName} ${user.lastName} (${user.email})`,
+          );
         })
         .catch((error) => {
           toast.error(error.data.message || "Failed to share file");
